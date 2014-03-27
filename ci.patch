@@ -78,11 +78,3 @@ index a1b4a9e..be5d26d 100644
          source_caps = gst.Caps()
          source_caps.append('image/jpeg,framerate=(fraction)4/1')
          source.set_property('caps', source_caps)
-@@ -192,6 +201,7 @@ class GstPythonVideoMaker(object):
-
-         pipeline.set_state(gst.STATE_PLAYING)
-         while True:
-+            print source.get_property('index'), no_files
-             if source.get_property('index') <= no_files:
-                 if self.verbose:
-                     logging.debug("Currently processing image number: %s",
