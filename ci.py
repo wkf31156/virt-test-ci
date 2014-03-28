@@ -568,8 +568,6 @@ class LibvirtCI():
             res.duration = 1200
 
         os.chdir(data_dir.get_root_dir()) # Check PWD
-        virsh.start('virt-tests-vm1')
-
 
         out = ''
 
