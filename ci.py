@@ -201,6 +201,7 @@ class State():
 
 class DomainState(State):
     name = 'domain'
+    permit_keys = ['id', 'cpu time', 'security label']
     def remove(self, name):
         dom = name
         if dom['state'] != 'shut off':
@@ -536,7 +537,6 @@ class LibvirtCI():
         print 'Removing VM', # TODO: use virt-test api remove VM
         sys.stdout.flush()
         status, res = self.run_test('remove_guest.without_disk', need_check=False)
-        #print 'Result: %s %.2f s' % (status, res.duration)
         if not 'PASS' in status:
             virsh.undefine('virt-tests-vm1', '--snapshots-metadata')
             print '   WARNING: Failed to remove guest'
@@ -546,9 +546,9 @@ class LibvirtCI():
         status, res = self.run_test(
                 'unattended_install.import.import.default_install.aio_native',
                 restore_image=True, need_check=False)
-        #print 'Result: %s %.2f s' % (status, res.duration)
         if not 'PASS' in status:
             raise Exception('   ERROR: Failed to install guest \n %s' % res.stderr)
+        virsh.destroy('virt-tests-vm1')
 
     def run_test(self, test, restore_image=False, need_check=True):
         """
