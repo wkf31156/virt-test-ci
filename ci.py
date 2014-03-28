@@ -4,11 +4,14 @@ import os
 import sys
 import time
 import difflib
+import tempfile
 import traceback
 from virttest import common
+from virttest import utils_libvirtd
 from virttest import data_dir
 from virttest import virsh
 from autotest.client import utils
+from virttest.utils_misc import mount, umount
 from autotest.client.tools import JUnit_api as api
 from autotest.client.shared import error
 from datetime import date
@@ -69,15 +72,15 @@ class Report():
 
 
 class State():
-    perm_key = []
-    perm_re = []
+    permit_keys = []
+    permit_re = []
     def get_names(self):
         raise NotImplementedError('Function get_names not implemented for %s.'
                                   % self.__class__.__name__)
     def get_info(self, name):
         raise NotImplementedError('Function get_info not implemented for %s.'
                                   % self.__class__.__name__)
-    def remove(self):
+    def remove(self, name):
         raise NotImplementedError('Function remove not implemented for %s.'
                                   % self.__class__.__name__)
     def restore(self, name):
@@ -139,10 +142,11 @@ class State():
                         self.remove(self.current_state[key])
                         diff_msg.append('FIXED')
                     except Exception, e:
+                        traceback.print_exc()
                         diff_msg.append('Remove is failed:\n %s' % e)
 
         if del_items:
-            diff_msg.append('Deleted %s(s):' % name)
+            diff_msg.append('Deleted %s(s):' % self.name)
             for key in del_items:
                 diff_msg.append(key)
                 if recover:
@@ -150,6 +154,7 @@ class State():
                         self.restore(self.current_state[key])
                         diff_msg.append('FIXED')
                     except Exception, e:
+                        traceback.print_exc()
                         diff_msg.append('Recover is failed:\n %s' % e)
 
         for item in unchanged_items:
@@ -167,7 +172,7 @@ class State():
                     diff_msg.append(key)
             for key in unchanged_keys:
                 if type(cur[key]) is str:
-                    if key not in self.perm_key and cur[key] != bak[key]:
+                    if key not in self.permit_keys and cur[key] != bak[key]:
                         item_changed = True
                         diff_msg.append('%s %s: %s changed: %s -> %s' % (
                                 self.name, item, key, bak[key], cur[key]))
@@ -177,7 +182,7 @@ class State():
                     tmp_msg = []
                     for line in diff:
                         tmp_msg.append(line)
-                    if tmp_msg and not lines_permitable(tmp_msg, self.perm_re):
+                    if tmp_msg and not lines_permitable(tmp_msg, self.permit_re):
                         item_changed = True
                         diff_msg.append('Pool %s: "%s" changed:' % (item, key))
                         diff_msg += tmp_msg
@@ -189,12 +194,58 @@ class State():
                     self.restore(bak)
                     diff_msg.append('FIXED')
                 except Exception, e:
+                    traceback.print_exc()
                     diff_msg.append('Recover is failed:\n %s' % e)
         return diff_msg
 
 
 class DomainState(State):
     name = 'domain'
+    def remove(self, name):
+        dom = name
+        if dom['state'] != 'shut off':
+            res = virsh.destroy(dom['name'])
+            if res.exit_status:
+                raise Exception(str(res))
+        if dom['persistent'] == 'yes':
+            # Make sure the domain is remove anyway
+            res = virsh.undefine(dom['name'], options='--snapshots-metadata --managed-save')
+            if res.exit_status:
+                raise Exception(str(res))
+
+    def restore(self, name):
+        dom = name
+        name = dom['name']
+        doms = self.current_state
+        if name in doms:
+            self.remove(doms[name])
+
+        domfile = tempfile.NamedTemporaryFile(delete=False)
+        fname = domfile.name
+        domfile.writelines(dom['inactive xml'])
+        domfile.close()
+
+        try:
+            if dom['persistent'] == 'yes':
+                res = virsh.define(fname)
+                if res.exit_status:
+                    raise Exception(str(res))
+                if dom['state'] != 'shut off':
+                    res = virsh.start(name)
+                    if res.exit_status:
+                        raise Exception(str(res))
+            else:
+                res = virsh.create(fname)
+                if res.exit_status:
+                    raise Exception(str(res))
+        finally:
+            os.remove(fname)
+
+        if dom['autostart'] == 'enable':
+            res = virsh.autostart(name, '')
+            if res.exit_status:
+                raise Exception(str(res))
+
     def get_info(self, name):
         infos = {}
         for line in virsh.dominfo(name).stdout.strip().splitlines():
@@ -209,6 +260,65 @@ class DomainState(State):
 
 class NetworkState(State):
     name = 'network'
+    def remove(self, name):
+        """
+        Remove target network _net_.
+
+        :param net: Target net to be removed.
+        """
+        net = name
+        if net['active'] == 'yes':
+            res = virsh.net_destroy(net['name'])
+            if res.exit_status:
+                raise Exception(str(res))
+        if net['persistent'] == 'yes':
+            res = virsh.net_undefine(net['name'])
+            if res.exit_status:
+                raise Exception(str(res))
+
+    def restore(self, name):
+        """
+        Restore networks from _net_.
+
+        :param net: Target net to be restored.
+        :raise CalledProcessError: when restore failed.
+        """
+        net = name
+        name = net['name']
+        nets = self.current_state
+        if name in nets:
+            self.remove(nets[name])
+
+        netfile = tempfile.NamedTemporaryFile(delete=False)
+        fname = netfile.name
+        netfile.writelines(net['inactive xml'])
+        netfile.close()
+
+        try:
+            if net['persistent'] == 'yes':
+                res = virsh.net_define(fname)
+                if res.exit_status:
+                    raise Exception(str(res))
+                if net['active'] == 'yes':
+                    res = virsh.net_start(name)
+                    if res.exit_status:
+                        print 'Restart libvirtd: %s' % str(res)
+                        utils_libvirtd.libvirtd_restart()
+                        res = virsh.net_start(name)
+                        if res.exit_status:
+                            raise Exception(str(res))
+            else:
+                res = virsh.net_create(fname)
+                if res.exit_status:
+                    raise Exception(str(res))
+        finally:
+            os.remove(fname)
+
+        if net['autostart'] == 'yes':
+            res = virsh.net_autostart(name)
+            if res.exit_status:
+                raise Exception(str(res))
+
     def get_info(self, name):
         infos = {}
         for line in virsh.net_info(name).stdout.strip().splitlines():
@@ -228,6 +338,59 @@ class NetworkState(State):
 
 class PoolState(State):
     name = 'pool'
+    permit_keys = ['available', 'allocation']
+    permit_re = [r'^[-+]\s*\<(capacity|allocation|available).*$']
+    def remove(self, name):
+        """
+        Remove target pool _pool_.
+
+        :param pool: Target pool to be removed.
+        """
+        pool = name
+        if pool['state'] == 'running':
+            res = virsh.pool_destroy(pool['name'])
+            if not res:
+                raise Exception(str(res))
+        if pool['persistent'] == 'yes':
+            res = virsh.pool_undefine(pool['name'])
+            if res.exit_status:
+                raise Exception(str(res))
+
+    def restore(self, name):
+        pool = name
+        name = pool['name']
+        pools = self.current_state
+        if name in pools:
+            self.remove(pools[name])
+
+        pool_file = tempfile.NamedTemporaryFile(delete=False)
+        fname = pool_file.name
+        pool_file.writelines(pool['inactive xml'])
+        pool_file.close()
+        
+        try:
+            if pool['persistent'] == 'yes':
+                res = virsh.pool_define(fname)
+                if res.exit_status:
+                    raise Exception(str(res))
+                if pool['state'] == 'running':
+                    res = virsh.pool_start(name)
+                    if res.exit_status:
+                        raise Exception(str(res))
+            else:
+                res = virsh.pool_create(fname)
+                if res.exit_status:
+                    raise Exception(str(res))
+        except Exception, e:
+            raise e
+        finally:
+            os.remove(fname)
+
+        if pool['autostart'] == 'yes':
+            res = virsh.pool_autostart(name)
+            if res.exit_status:
+                raise Exception(str(res))
+
     def get_info(self, name):
         infos = {}
         for line in virsh.pool_info(name).stdout.strip().splitlines():
@@ -240,6 +403,48 @@ class PoolState(State):
     def get_names(self):
         lines = virsh.pool_list('--all').stdout.strip().splitlines()[2:]
         return [line.split()[0] for line in lines]
+
+class MountState(State):
+    name = 'mount'
+    permit_keys = []
+    permit_re = []
+    info = {}
+    def remove(self, name):
+        info = name
+        # ugly workaround for nfs which unable to umount
+        #os.system('systemctl restart nfs')
+        if not umount(info['src'], info['mount_point'], info['fstype'],
+                      verbose=False):
+            raise Exception("Failed to unmount %s" % info['mount_point'])
+
+    def restore(self, name):
+        info = name
+        if not mount(info['src'], info['mount_point'], info['fstype'],
+                     info['options'], verbose=False):
+            raise Exception("Failed to mount %s" % info['mount_point'])
+
+    def get_info(self, name):
+        return self.info[name]
+
+    def get_names(self):
+        """
+        Get all mount infomations from /etc/mtab.
+
+        :return: A dict using mount point as keys and six element dict as value.
+        """
+        lines = file('/etc/mtab').read().splitlines()
+        names = []
+        for line in lines:
+            values = line.split()
+            if len(values) != 6:
+                print 'Warning: Error parsing mountpoint: %s' % line
+                continue
+            keys = ['src', 'mount_point', 'fstype', 'options', 'dump', 'order']
+            mount_entry = dict(zip(keys, values))
+            mount_point = mount_entry['mount_point']
+            names.append(mount_point)
+            self.info[mount_point] = mount_entry
+        return names
 
 
 class LibvirtCI():
@@ -330,8 +535,8 @@ class LibvirtCI():
 
         print 'Removing VM', # TODO: use virt-test api remove VM
         sys.stdout.flush()
-        status, res = self.run_test('remove_guest.without_disk')
-        print 'Result: %s %.2f s' % (status, res.duration)
+        status, res = self.run_test('remove_guest.without_disk', need_check=False)
+        #print 'Result: %s %.2f s' % (status, res.duration)
         if not 'PASS' in status:
             virsh.undefine('virt-tests-vm1', '--snapshots-metadata')
             print '   WARNING: Failed to remove guest'
@@ -340,25 +545,54 @@ class LibvirtCI():
         sys.stdout.flush()
         status, res = self.run_test(
                 'unattended_install.import.import.default_install.aio_native',
-                restore_image=True)
-        print 'Result: %s %.2f s' % (status, res.duration)
+                restore_image=True, need_check=False)
+        #print 'Result: %s %.2f s' % (status, res.duration)
         if not 'PASS' in status:
             raise Exception('   ERROR: Failed to install guest \n %s' % res.stderr)
 
-    def run_test(self, test, restore_image=False):
+    def run_test(self, test, restore_image=False, need_check=True):
         """
         Run a specific test.
         """
         img_str = '' if restore_image else 'k'
         cmd =  './run -v%st libvirt --keep-image-between-tests --tests %s' % (img_str, test)
-        test_status = 'INVALID'
-        res = utils.run(cmd, timeout=600, ignore_status=True)
-        lines = res.stdout.splitlines()
-        for line in lines:
-            if line.startswith('(1/1)'):
-                test_status = line.split()[2]
+        status = 'INVALID'
+        res = utils.run(cmd, timeout=1200, ignore_status=True)
+        try:
+            lines = res.stdout.splitlines()
+            for line in lines:
+                if line.startswith('(1/1)'):
+                    status = line.split()[2]
+        except error.CmdError:
+            status = 'TIMEOUT'
+            res.duration = 1200
 
-        return test_status, res
+        os.chdir(data_dir.get_root_dir()) # Check PWD
+        virsh.start('virt-tests-vm1')
+
+
+        out = ''
+
+        if need_check:
+            for state in self.states:
+                diffmsg = state.check(recover=True)
+                if diffmsg:
+                    status += ' DIFF'
+                    for line in diffmsg:
+                        out += '   DIFF|%s\n' % line
+
+        print 'Result: %s %.2f s' % (status, res.duration)
+
+        if 'FAIL' in status or 'ERROR' in status:
+            for line in res.stderr.splitlines():
+                if 'ERROR|' in line:
+                    out += '  %s\n' % line[9:]
+        if status == 'INVALID' or status == 'TIMEOUT':
+            out += res.stdout
+        if out:
+            print out
+        sys.stdout.flush()
+        return status, res
 
     def run(self):
         """
@@ -366,45 +600,42 @@ class LibvirtCI():
         """
         report = Report()
         try:
-            states = [DomainState(), NetworkState(), PoolState()]
-            for state in states:
+            self.states = [DomainState(), NetworkState(), PoolState(), MountState()]
+            tests = self.prepare_tests()
+            #self.prepare_env()
+            for state in self.states:
                 state.backup()
 
-            tests = self.prepare_tests()
-            self.prepare_env()
             for idx, test in enumerate(tests):
                 short_name = test.split('.', 2)[2]
                 print '%s (%d/%d) %s ' % (time.strftime('%X'), idx + 1, len(tests), short_name),
                 sys.stdout.flush()
 
-                try:
-                    status, res = self.run_test(test)
+                status, res = self.run_test(test)
 
-                    os.chdir(data_dir.get_root_dir())
-                    for state in states:
-                        state.check(recover=True)
-
-                    print 'Result: %s %.2f s' % (status, res.duration)
-                    if 'FAIL' in status or 'ERROR' in status:
-                        for line in res.stderr.splitlines():
-                            if 'ERROR|' in line:
-                                print '  %s' % line[9:]
-                    if status == 'INVALID':
-                        print res.stdout
-                    sys.stdout.flush()
-                    module_name = self.get_module_name(test)
-                    report.update(test, module_name, status, res.stderr, res.duration)
-                except error.CmdError:
-                    status = 'TIMEOUT'
-                    print 'Result: %s %.2f s' % (status, 600.0)
-                    report.update(test, module_name, status, traceback.format_exc(), 600.0)
+                module_name = self.get_module_name(test)
+                report.update(test, module_name, status, res.stderr, res.duration)
         except Exception:
             traceback.print_exc()
         finally:
             report.save('libvirt_ci_junit.xml')
 
 
+def state_test():
+    states = [DomainState(), NetworkState(), PoolState(), MountState()]
+    for state in states:
+        state.backup()
+    virsh.start('virt-tests-vm1')
+    virsh.net_autostart('default', '--disable')
+    virsh.pool_destroy('mount')
+    mount('/dev/sda1', '/tmp/mnt', 'ext4', verbose=False)
+    for state in states:
+        lines = state.check(recover=True)
+        for line in lines:
+            print line
+
 if __name__ == '__main__':
+#    state_test()
     ci = LibvirtCI()
     ci.run()
 
