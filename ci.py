@@ -590,7 +590,7 @@ class LibvirtCI():
         if status == 'INVALID' or status == 'TIMEOUT':
             out += res.stdout
         if out:
-            print out
+            print out,
         sys.stdout.flush()
         return status, res
 
@@ -602,7 +602,7 @@ class LibvirtCI():
         try:
             self.states = [DomainState(), NetworkState(), PoolState(), MountState()]
             tests = self.prepare_tests()
-            #self.prepare_env()
+            self.prepare_env()
             for state in self.states:
                 state.backup()
 
