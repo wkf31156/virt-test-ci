@@ -557,13 +557,14 @@ class LibvirtCI():
         img_str = '' if restore_image else 'k'
         cmd =  './run -v%st libvirt --keep-image-between-tests --tests %s' % (img_str, test)
         status = 'INVALID'
-        res = utils.run(cmd, timeout=1200, ignore_status=True)
         try:
+            res = utils.run(cmd, timeout=1200, ignore_status=True)
             lines = res.stdout.splitlines()
             for line in lines:
                 if line.startswith('(1/1)'):
                     status = line.split()[2]
-        except error.CmdError:
+        except error.CmdError, e:
+            res = e.result_obj
             status = 'TIMEOUT'
             res.duration = 1200
 
