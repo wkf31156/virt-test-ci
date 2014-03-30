@@ -13,6 +13,7 @@ from virttest import virsh
 from autotest.client import utils
 from virttest.utils_misc import mount, umount
 from autotest.client.tools import JUnit_api as api
+api.ExternalEncoding = 'utf-8'
 from autotest.client.shared import error
 from datetime import date
 
@@ -184,11 +185,11 @@ class State():
                         tmp_msg.append(line)
                     if tmp_msg and not lines_permitable(tmp_msg, self.permit_re):
                         item_changed = True
-                        diff_msg.append('Pool %s: "%s" changed:' % (item, key))
+                        diff_msg.append('%s %s: "%s" changed:' % (self.name, item, key))
                         diff_msg += tmp_msg
                 else:
-                    diff_msg.append('Pool %s: %s: Invalid type %s.' % (
-                            item, key, type(cur[key])))
+                    diff_msg.append('%s %s: %s: Invalid type %s.' % (
+                            self.name, item, key, type(cur[key])))
             if item_changed and recover:
                 try:
                     self.restore(bak)
