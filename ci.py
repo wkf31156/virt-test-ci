@@ -14,7 +14,6 @@ from virttest import virsh
 from autotest.client import utils
 from virttest.utils_misc import mount, umount
 from autotest.client.tools import JUnit_api as api
-api.ExternalEncoding = 'utf-8'
 from autotest.client.shared import error
 from datetime import date
 
@@ -60,13 +59,13 @@ class Report():
             tc.failure = self.failureType(
                     message='Test %s has failed' % testname,
                     type_='Failure',
-                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
+                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % unicode(log, errors='ignore'))
             ts.failures += 1
         elif 'ERROR' in result:
             tc.error = self.errorType(
                     message='Test %s has failed' % testname,
                     type_='Failure',
-                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
+                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % unicode(log, errors='ignore'))
             ts.errors += 1
         ts.add_testcase(tc)
         ts.tests += 1
