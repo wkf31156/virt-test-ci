@@ -3,6 +3,7 @@ import re
 import os
 import sys
 import time
+import shutil
 import difflib
 import tempfile
 import traceback
@@ -615,11 +616,11 @@ class LibvirtCI():
 
                 module_name = self.get_module_name(test)
                 report.update(test, module_name, status, res.stderr, res.duration)
-                report.save('libvirt_ci_junit.xml')
+                report.save(sys.argv[1])
         except Exception:
             traceback.print_exc()
         finally:
-            report.save('libvirt_ci_junit.xml')
+            report.save(sys.argv[1])
 
 
 def state_test():
