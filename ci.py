@@ -25,18 +25,18 @@ class Report():
     class errorType(api.errorType):
         pass
     def __init__(self):
-        self.testsuites = api.testsuites()
         self.ts_dict = {}
 
     def save(self, filename):
         """
         Save current state of report to files.
         """
+        testsuites = api.testsuites()
         for ts_name in self.ts_dict:
             ts = self.ts_dict[ts_name]
-            self.testsuites.add_testsuite(ts)
+            testsuites.add_testsuite(ts)
         with open(filename, 'w') as fp:
-            self.testsuites.export(fp, 0)
+            testsuites.export(fp, 0)
 
 
     def update(self, testname, ts_name, result, log, duration):
