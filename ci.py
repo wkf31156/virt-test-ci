@@ -615,6 +615,7 @@ class LibvirtCI():
 
                 module_name = self.get_module_name(test)
                 report.update(test, module_name, status, res.stderr, res.duration)
+                report.save('libvirt_ci_junit.xml')
         except Exception:
             traceback.print_exc()
         finally:
