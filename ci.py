@@ -3,11 +3,11 @@ import re
 import os
 import sys
 import time
-import shutil
 import difflib
 import tempfile
 import traceback
 from virttest import common
+from virttest import utils_selinux
 from virttest import utils_libvirtd
 from virttest import data_dir
 from virttest import virsh
@@ -448,6 +448,43 @@ class MountState(State):
             self.info[mount_point] = mount_entry
         return names
 
+class ServiceState(State):
+    name = 'service'
+    permit_keys = []
+    permit_re = []
+
+    def remove(self, name):
+        raise Exception('It is meaningless to remove service %s' % name)
+
+    def restore(self, name):
+        info = name
+        if info['name'] == 'libvirtd':
+            if info['status'] == 'running':
+                if not utils_libvirtd.libvirtd_start():
+                    raise Exception('Failed to start libvirtd')
+            elif info['status'] == 'stopped':
+                if not utils_libvirtd.libvirtd_stop():
+                    raise Exception('Failed to stop libvirtd')
+            else:
+                raise Exception('Unknown libvirtd status %s' % info['status'])
+        elif info['name'] == 'selinux':
+            utils_selinux.set_status(info['status'])
+        else:
+            raise Exception('Unknown service %s' % info['name'])
+
+    def get_info(self, name):
+        if name == 'libvirtd':
+            if utils_libvirtd.libvirtd_is_running():
+                status = 'running'
+            else:
+                status = 'stopped'
+        if name == 'selinux':
+            status =  utils_selinux.get_status()
+        return {'name': name, 'status': status}
+
+    def get_names(self):
+        return ['libvirtd', 'selinux']
+
 
 class LibvirtCI():
     def prepare_tests(self, whitelist='whitelist.test', blacklist='blacklist.test'):
@@ -600,7 +637,8 @@ class LibvirtCI():
         """
         report = Report()
         try:
-            self.states = [DomainState(), NetworkState(), PoolState(), MountState()]
+            # service must put at first, or the result will be wrong.
+            self.states = [ServiceState(), DomainState(), NetworkState(), PoolState(), MountState()]
             tests = self.prepare_tests()
             self.prepare_env()
             for state in self.states:
@@ -623,13 +661,14 @@ class LibvirtCI():
 
 
 def state_test():
-    states = [DomainState(), NetworkState(), PoolState(), MountState()]
+    states = [ServiceState(), DomainState(), NetworkState(), PoolState(), MountState()]
     for state in states:
         state.backup()
     virsh.start('virt-tests-vm1')
     virsh.net_autostart('default', '--disable')
     virsh.pool_destroy('mount')
-    mount('/dev/sda1', '/tmp/mnt', 'ext4', verbose=False)
+    utils_libvirtd.libvirtd_stop()
+    utils_selinux.set_status('permissive')
     for state in states:
         lines = state.check(recover=True)
         for line in lines:
