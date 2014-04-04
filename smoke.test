@@ -2,7 +2,7 @@ type_specific.io-github-autotest-libvirt.kernel_panic
 type_specific.io-github-autotest-libvirt.libvirt_bench.domstate_switch_by_groups.shutdown_start_pause_resume
 type_specific.io-github-autotest-libvirt.libvirt_bench.domstate_switch_in_loop.shutdown_start_pause_resume
 type_specific.io-github-autotest-libvirt.libvirt_network_bandwidth.network
-type_specific.io-github-autotest-libvirt.libvirt_pci_passthrough.NIC
+type_specific.io-github-autotest-libvirt.libvirt_pci_passthrough.NIC.Normal_passthrough
 type_specific.io-github-autotest-libvirt.libvirt_scsi.controller_yes.disk_type_img
 type_specific.io-github-autotest-libvirt.macvtap.Bridge
 type_specific.io-github-autotest-libvirt.multifunction.set_type_drive.set_multifunction_on.single_device.function_-1
