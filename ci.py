@@ -3,12 +3,12 @@ import re
 import os
 import sys
 import time
+import shutil
 import difflib
 import tempfile
 import traceback
 from virttest import common
-from virttest import utils_selinux
-from virttest import utils_libvirtd
+from virttest import utils_libvirtd, utils_selinux
 from virttest import data_dir
 from virttest import virsh
 from autotest.client import utils
@@ -304,8 +304,6 @@ class NetworkState(State):
                 if net['active'] == 'yes':
                     res = virsh.net_start(name)
                     if res.exit_status:
-                        print 'Restart libvirtd: %s' % str(res)
-                        utils_libvirtd.libvirtd_restart()
                         res = virsh.net_start(name)
                         if res.exit_status:
                             raise Exception(str(res))
@@ -450,6 +448,7 @@ class MountState(State):
 
 class ServiceState(State):
     name = 'service'
+    libvirtd = utils_libvirtd.Libvirtd()
     permit_keys = []
     permit_re = []
 
@@ -460,10 +459,10 @@ class ServiceState(State):
         info = name
         if info['name'] == 'libvirtd':
             if info['status'] == 'running':
-                if not utils_libvirtd.libvirtd_start():
+                if not self.libvirtd.start():
                     raise Exception('Failed to start libvirtd')
             elif info['status'] == 'stopped':
-                if not utils_libvirtd.libvirtd_stop():
+                if not self.libvirtd.stop():
                     raise Exception('Failed to stop libvirtd')
             else:
                 raise Exception('Unknown libvirtd status %s' % info['status'])
@@ -474,7 +473,7 @@ class ServiceState(State):
 
     def get_info(self, name):
         if name == 'libvirtd':
-            if utils_libvirtd.libvirtd_is_running():
+            if self.libvirtd.is_running():
                 status = 'running'
             else:
                 status = 'stopped'
@@ -485,6 +484,33 @@ class ServiceState(State):
     def get_names(self):
         return ['libvirtd', 'selinux']
 
+class DirState(State):
+    name = 'directory'
+    permit_keys = []
+    permit_re = []
+
+    def remove(self, name):
+        info = name
+        print 'Removing', info
+        #shutil.rmtree(info)
+       
+    def restore(self, name):
+        info = name
+        print 'Restoring', info
+        #shutil.rmtree(info)
+
+    def get_info(self, name):
+        infos = {}
+        infos['dir-name'] = name
+        for f in os.listdir(name):
+            infos[f] = f
+        return infos
+
+    def get_names(self):
+        return ['/tmp',
+                data_dir.get_tmp_dir(),
+                os.path.join(data_dir.get_data_dir(), 'images'),
+                '/var/lib/libvirt/images']
 
 class LibvirtCI():
     def prepare_tests(self, whitelist='whitelist.test', blacklist='blacklist.test'):
@@ -661,13 +687,15 @@ class LibvirtCI():
 
 
 def state_test():
-    states = [ServiceState(), DomainState(), NetworkState(), PoolState(), MountState()]
+    states = [ServiceState(), DirState(), DomainState(), NetworkState(), PoolState(), MountState()]
     for state in states:
         state.backup()
     virsh.start('virt-tests-vm1')
     virsh.net_autostart('default', '--disable')
     virsh.pool_destroy('mount')
-    utils_libvirtd.libvirtd_stop()
+    utils.run('touch /var/lib/virt_test/images/hello')
+    utils.run('rm /var/lib/virt_test/images/hello')
+    utils_libvirtd.Libvirtd().stop()
     utils_selinux.set_status('permissive')
     for state in states:
         lines = state.check(recover=True)
