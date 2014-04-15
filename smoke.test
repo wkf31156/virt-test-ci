@@ -63,7 +63,7 @@ type_specific.io-github-autotest-libvirt.virsh.hostname.no_option
 type_specific.io-github-autotest-libvirt.virsh.iface_trans.positive_testing.open_commit_transaction
 type_specific.io-github-autotest-libvirt.virsh.itself.normal_test.default_option
 type_specific.io-github-autotest-libvirt.virsh.list.normal_test.with_valid_options.list_table.all
-type_specific.io-github-autotest-libvirt.virsh.managedsave.status_error_no.name_option.normal_status
+type_specific.io-github-autotest-libvirt.virsh.managedsave.status_error_no.name_option.normal_status.no_opt.show_progress
 type_specific.io-github-autotest-libvirt.virsh.maxvcpus.connect_to_local.no_option
 type_specific.io-github-autotest-libvirt.virsh.memtune
 type_specific.io-github-autotest-libvirt.virsh.migrate_compcache.get_compcache.positive_test.live_vm.min_size
