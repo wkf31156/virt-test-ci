@@ -98,6 +98,12 @@ class Report():
                     type_='Failure',
                     valueOf_="\n<![CDATA[\n%s\n]]>\n" % unicode(log, errors='ignore'))
             ts.failures += 1
+        if 'TIMEOUT' in result:
+            tc.failure = self.failureType(
+                    message='Test %s has timed out' % testname,
+                    type_='Timeout',
+                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % unicode(log, errors='ignore'))
+            ts.failures += 1
         elif 'ERROR' in result:
             tc.error = self.errorType(
                     message='Test %s has encountered error' % testname,
