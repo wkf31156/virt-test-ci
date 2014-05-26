@@ -19,10 +19,47 @@ from datetime import date
 
 
 class Report():
+    class testcaseType(api.testcaseType):
+        def __init__(self, classname=None, name=None, time=None, error=None, failure=None, skip=None):
+            api.testcaseType.__init__(self, classname, name, time, error, failure)
+            self.skip = skip
+
+        def exportChildren(self, outfile, level, namespace_='', name_='testcaseType', fromsubclass_=False):
+            api.testcaseType.exportChildren(self, outfile, level, namespace_, name_, fromsubclass_)
+            print self.skip
+            if self.skip is not None:
+                self.skip.export(outfile, level, namespace_, name_='skipped')
+
+        def hasContent_(self):
+            if (
+                self.error is not None or
+                self.failure is not None or
+                self.skip is not None
+            ):
+                return True
+            else:
+                return False
     class failureType(api.failureType):
         pass
     class errorType(api.errorType):
         pass
+    class skipType(api.failureType):
+        pass
+    class testsuite(api.testsuite):
+        def __init__(self, name=None, skips=None):
+            api.testsuite.__init__(self, name=name)
+            self.skips = api._cast(int, skips)
+
+        def exportAttributes(
+                self, outfile, level, already_processed,
+                namespace_='', name_='testsuite'):
+            api.testsuite.exportAttributes(self,
+                    outfile, level, already_processed,
+                    namespace_, name_)
+            if self.skips is not None and 'skips' not in already_processed:
+                already_processed.append('skips')
+                outfile.write(' skipped="%s"' % self.gds_format_integer(self.skips, input_name='skipped'))
+
     def __init__(self):
         self.ts_dict = {}
 
@@ -44,15 +81,16 @@ class Report():
         """
 
         if not ts_name in self.ts_dict:
-            self.ts_dict[ts_name] = api.testsuite(name=ts_name)
+            self.ts_dict[ts_name] = self.testsuite(name=ts_name)
             ts = self.ts_dict[ts_name]
             ts.failures = 0
+            ts.skips = 0
             ts.tests = 0
             ts.errors = 0
         else:
             ts = self.ts_dict[ts_name]
 
-        tc = api.testcaseType()
+        tc = self.testcaseType()
         tc.name = testname
         tc.time = duration
         if 'FAIL' in result:
@@ -63,10 +101,16 @@ class Report():
             ts.failures += 1
         elif 'ERROR' in result:
             tc.error = self.errorType(
-                    message='Test %s has failed' % testname,
-                    type_='Failure',
+                    message='Test %s has encountered error' % testname,
+                    type_='Error',
                     valueOf_="\n<![CDATA[\n%s\n]]>\n" % unicode(log, errors='ignore'))
             ts.errors += 1
+        elif 'SKIP' in result:
+            tc.skip = self.skipType(
+                    message='Test %s has skipped' % testname,
+                    type_='Skip',
+                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % unicode(log, errors='ignore'))
+            ts.skips += 1
         ts.add_testcase(tc)
         ts.tests += 1
         ts.timestamp = date.isoformat(date.today())
