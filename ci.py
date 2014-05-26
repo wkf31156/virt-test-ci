@@ -164,12 +164,14 @@ class State():
             item_changed = False
             new_keys, del_keys, unchanged_keys = diff_dict(bak, cur)
             if new_keys:
+                item_changed = True
                 diff_msg.append('Created key(s) in %s %s:' % (self.name, item))
                 for key in new_keys:
                     diff_msg.append(key)
             if del_keys:
+                item_changed = True
                 diff_msg.append('Deleted key(s) in %s %s:' % (self.name, item))
-                for key in new_keys:
+                for key in del_keys:
                     diff_msg.append(key)
             for key in unchanged_keys:
                 if type(cur[key]) is str:
