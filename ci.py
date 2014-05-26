@@ -575,6 +575,33 @@ class DirState(State):
                 os.path.join(data_dir.get_data_dir(), 'images'),
                 '/var/lib/libvirt/images']
 
+class FileState(State):
+    name = 'file'
+    permit_keys = []
+    permit_re = []
+
+    def remove(self, name):
+        raise Exception('It is not wise to remove a system file %s' % name)
+
+    def restore(self, name):
+        file_path = name['file-path']
+        cur = self.current_state[file_path]
+        bak = self.backup_state[file_path]
+        if cur['content'] != bak['content']:
+            with open(file_path, 'w') as f:
+                f.write(bak['content'])
+
+    def get_info(self, name):
+        infos = {}
+        infos['file-path'] = name
+        with open(name) as f:
+            infos['content'] = f.read()
+        return infos
+
+    def get_names(self):
+        return ['/etc/exports']
+
+
 class LibvirtCI():
     def prepare_tests(self, whitelist='whitelist.test', blacklist='blacklist.test'):
         """
@@ -730,7 +757,7 @@ class LibvirtCI():
         report = Report()
         try:
             # service must put at first, or the result will be wrong.
-            self.states = [ServiceState(), DirState(), DomainState(), NetworkState(), PoolState(), MountState()]
+            self.states = [ServiceState(), FileState(), DirState(), DomainState(), NetworkState(), PoolState(), MountState()]
             tests = self.prepare_tests()
             self.prepare_env()
             for state in self.states:
@@ -753,15 +780,15 @@ class LibvirtCI():
 
 
 def state_test():
-    states = [ServiceState(), DirState(), DomainState(), NetworkState(), PoolState(), MountState()]
+    states = [ServiceState(), FileState(), DirState(), DomainState(), NetworkState(), PoolState(), MountState()]
     for state in states:
         state.backup()
+    utils.run('echo hello > /etc/exports')
     virsh.start('virt-tests-vm1')
     virsh.net_autostart('default', '--disable')
     virsh.pool_destroy('mount')
     utils.run('rm /var/lib/virt_test/images/hello')
     utils.run('mkdir /var/lib/virt_test/images/hi')
-    utils.run('rm /var/lib/virt_test/images/hello')
     utils_libvirtd.Libvirtd().stop()
     utils_selinux.set_status('permissive')
     for state in states:
