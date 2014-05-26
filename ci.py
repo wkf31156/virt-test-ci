@@ -700,10 +700,13 @@ class LibvirtCI():
         out = ''
 
         if need_check:
+            diff = False
             for state in self.states:
                 diffmsg = state.check(recover=True)
                 if diffmsg:
-                    status += ' DIFF'
+                    if not diff:
+                        diff = True
+                        status += ' DIFF'
                     for line in diffmsg:
                         out += '   DIFF|%s\n' % line
 
