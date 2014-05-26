@@ -26,7 +26,6 @@ class Report():
 
         def exportChildren(self, outfile, level, namespace_='', name_='testcaseType', fromsubclass_=False):
             api.testcaseType.exportChildren(self, outfile, level, namespace_, name_, fromsubclass_)
-            print self.skip
             if self.skip is not None:
                 self.skip.export(outfile, level, namespace_, name_='skipped')
 
@@ -196,7 +195,7 @@ class State():
                 diff_msg.append(item)
                 if recover:
                     try:
-                        self.restore(self.current_state[item])
+                        self.restore(self.backup_state[item])
                         diff_msg.append('FIXED')
                     except Exception, e:
                         traceback.print_exc()
@@ -238,7 +237,7 @@ class State():
                             self.name, item, key, type(cur[key])))
             if item_changed and recover:
                 try:
-                    self.restore(self.current_state[item])
+                    self.restore(self.backup_state[item])
                     diff_msg.append('FIXED')
                 except Exception, e:
                     traceback.print_exc()
