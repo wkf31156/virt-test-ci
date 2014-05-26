@@ -136,11 +136,11 @@ class State():
                 self.backup_state, self.current_state)
         if new_items:
             diff_msg.append('Created %s(s):' % self.name)
-            for key in new_items:
-                diff_msg.append(key)
+            for item in new_items:
+                diff_msg.append(item)
                 if recover:
                     try:
-                        self.remove(self.current_state[key])
+                        self.remove(self.current_state[item])
                         diff_msg.append('FIXED')
                     except Exception, e:
                         traceback.print_exc()
@@ -148,11 +148,11 @@ class State():
 
         if del_items:
             diff_msg.append('Deleted %s(s):' % self.name)
-            for key in del_items:
-                diff_msg.append(key)
+            for item in del_items:
+                diff_msg.append(item)
                 if recover:
                     try:
-                        self.restore(self.current_state[key])
+                        self.restore(self.current_state[item])
                         diff_msg.append('FIXED')
                     except Exception, e:
                         traceback.print_exc()
@@ -194,7 +194,7 @@ class State():
                             self.name, item, key, type(cur[key])))
             if item_changed and recover:
                 try:
-                    self.restore(bak)
+                    self.restore(self.current_state[item])
                     diff_msg.append('FIXED')
                 except Exception, e:
                     traceback.print_exc()
@@ -492,14 +492,26 @@ class DirState(State):
     permit_re = []
 
     def remove(self, name):
-        info = name
-        print 'Removing', info
-        #shutil.rmtree(info)
-       
+        raise Exception('It is not wise to remove a dir %s' % name)
+
     def restore(self, name):
-        info = name
-        print 'Restoring', info
-        #shutil.rmtree(info)
+        dirname = name['dir-name']
+        cur = self.current_state[dirname]
+        bak = self.backup_state[dirname]
+        created_files = set(cur) - set(bak)
+        if created_files:
+            for fname in created_files:
+                fpath = os.path.join(name['dir-name'], fname)
+                if os.path.isfile(fpath):
+                    os.remove(fpath)
+                elif os.path.isdir(fpath):
+                    shutil.rmtree(fpath)
+        deleted_files = set(bak) - set(cur)
+        if deleted_files:
+            for fname in deleted_files:
+                fpath = os.path.join(name['dir-name'], fname)
+                open(fpath, 'a').close()
+        #TODO: record file/dir info and recover them separately
 
     def get_info(self, name):
         infos = {}
@@ -666,7 +678,7 @@ class LibvirtCI():
         report = Report()
         try:
             # service must put at first, or the result will be wrong.
-            self.states = [ServiceState(), DomainState(), NetworkState(), PoolState(), MountState()]
+            self.states = [ServiceState(), DirState(), DomainState(), NetworkState(), PoolState(), MountState()]
             tests = self.prepare_tests()
             self.prepare_env()
             for state in self.states:
@@ -695,7 +707,8 @@ def state_test():
     virsh.start('virt-tests-vm1')
     virsh.net_autostart('default', '--disable')
     virsh.pool_destroy('mount')
-    utils.run('touch /var/lib/virt_test/images/hello')
+    utils.run('rm /var/lib/virt_test/images/hello')
+    utils.run('mkdir /var/lib/virt_test/images/hi')
     utils.run('rm /var/lib/virt_test/images/hello')
     utils_libvirtd.Libvirtd().stop()
     utils_selinux.set_status('permissive')
