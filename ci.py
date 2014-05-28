@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import shutil
+import string
 import difflib
 import tempfile
 import traceback
@@ -92,29 +93,33 @@ class Report():
         tc = self.testcaseType()
         tc.name = testname
         tc.time = duration
+
+        # Filter non-printable characters in log
+        log = ''.join(s for s in unicode(log, errors='ignore') if s in string.printable)
+
         if 'FAIL' in result:
             tc.failure = self.failureType(
                     message='Test %s has failed' % testname,
                     type_='Failure',
-                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % unicode(log, errors='ignore'))
+                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
             ts.failures += 1
         if 'TIMEOUT' in result:
             tc.failure = self.failureType(
                     message='Test %s has timed out' % testname,
                     type_='Timeout',
-                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % unicode(log, errors='ignore'))
+                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
             ts.failures += 1
         elif 'ERROR' in result:
             tc.error = self.errorType(
                     message='Test %s has encountered error' % testname,
                     type_='Error',
-                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % unicode(log, errors='ignore'))
+                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
             ts.errors += 1
         elif 'SKIP' in result:
             tc.skip = self.skipType(
                     message='Test %s has skipped' % testname,
                     type_='Skip',
-                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % unicode(log, errors='ignore'))
+                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
             ts.skips += 1
         ts.add_testcase(tc)
         ts.tests += 1
