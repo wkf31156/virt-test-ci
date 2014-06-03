@@ -195,7 +195,6 @@ class State():
                 if recover:
                     try:
                         self.remove(self.current_state[item])
-                        diff_msg.append('FIXED')
                     except Exception, e:
                         traceback.print_exc()
                         diff_msg.append('Remove is failed:\n %s' % e)
@@ -207,7 +206,6 @@ class State():
                 if recover:
                     try:
                         self.restore(self.backup_state[item])
-                        diff_msg.append('FIXED')
                     except Exception, e:
                         traceback.print_exc()
                         diff_msg.append('Recover is failed:\n %s' % e)
@@ -249,7 +247,6 @@ class State():
             if item_changed and recover:
                 try:
                     self.restore(self.backup_state[item])
-                    diff_msg.append('FIXED')
                 except Exception, e:
                     traceback.print_exc()
                     diff_msg.append('Recover is failed:\n %s' % e)
@@ -458,6 +455,50 @@ class PoolState(State):
 
     def get_names(self):
         lines = virsh.pool_list('--all').stdout.strip().splitlines()[2:]
+        return [line.split()[0] for line in lines]
+
+class SecretState(State):
+    name = 'secret'
+    permit_keys = []
+    permit_re = []
+
+    def remove(self, name):
+        secret = name
+        res = virsh.secret_undefine(secret['uuid'])
+        if res.exit_status:
+            raise Exception(str(res))
+
+    def restore(self, name):
+        uuid = name
+        cur = self.current_state
+        bak = self.backup_state
+
+        if uuid in cur:
+            self.remove(name)
+
+        secret_file = tempfile.NamedTemporaryFile(delete=False)
+        fname = secret_file.name
+        secret_file.writelines(bak[name]['xml'])
+        secret_file.close()
+
+        try:
+            res = virsh.secret_define(fname)
+            if res.exit_status:
+                raise Exception(str(res))
+        except Exception, e:
+            raise e
+        finally:
+            os.remove(fname)
+
+
+    def get_info(self, name):
+        infos = {}
+        infos['uuid'] = name
+        infos['xml'] = virsh.secret_dumpxml(name).stdout.splitlines()
+        return infos
+
+    def get_names(self):
+        lines = virsh.secret_list().stdout.strip().splitlines()[2:]
         return [line.split()[0] for line in lines]
 
 class MountState(State):
@@ -762,7 +803,7 @@ class LibvirtCI():
         report = Report()
         try:
             # service must put at first, or the result will be wrong.
-            self.states = [ServiceState(), FileState(), DirState(), DomainState(), NetworkState(), PoolState(), MountState()]
+            self.states = [ServiceState(), FileState(), DirState(), DomainState(), NetworkState(), PoolState(), SecretState(), MountState()]
             tests = self.prepare_tests()
             self.prepare_env()
             for state in self.states:
@@ -785,7 +826,7 @@ class LibvirtCI():
 
 
 def state_test():
-    states = [ServiceState(), FileState(), DirState(), DomainState(), NetworkState(), PoolState(), MountState()]
+    states = [ServiceState(), FileState(), DirState(), DomainState(), NetworkState(), PoolState(), SecretState(), MountState()]
     for state in states:
         state.backup()
     utils.run('echo hello > /etc/exports')
