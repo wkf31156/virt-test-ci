@@ -790,7 +790,10 @@ class LibvirtCI():
         if self.args.no:
             self.nos |= set(self.args.no.split(','))
         if self.args.change:
-            self.onlys &= change_to_only(self.args.change)
+            if self.onlys:
+                self.onlys &= change_to_only(self.args.change)
+            else:
+                self.onlys = change_to_only(self.args.change)
 
         if self.args.whitelist:
             tests = read_tests_from_file(whitelist)
