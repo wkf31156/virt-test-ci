@@ -21,15 +21,19 @@ from datetime import date
 
 
 class Report():
+
     class testcaseType(api.testcaseType):
+
         def __init__(self, classname=None, name=None, time=None, error=None,
                      failure=None, skip=None):
             api.testcaseType.__init__(self, classname, name, time, error,
                                       failure)
             self.skip = skip
 
-        def exportChildren(self, outfile, level, namespace_='', name_='testcaseType', fromsubclass_=False):
-            api.testcaseType.exportChildren(self, outfile, level, namespace_, name_, fromsubclass_)
+        def exportChildren(self, outfile, level, namespace_='',
+                           name_='testcaseType', fromsubclass_=False):
+            api.testcaseType.exportChildren(
+                self, outfile, level, namespace_, name_, fromsubclass_)
             if self.skip is not None:
                 self.skip.export(outfile, level, namespace_, name_='skipped')
 
@@ -42,13 +46,18 @@ class Report():
                 return True
             else:
                 return False
+
     class failureType(api.failureType):
         pass
+
     class errorType(api.errorType):
         pass
+
     class skipType(api.failureType):
         pass
+
     class testsuite(api.testsuite):
+
         def __init__(self, name=None, skips=None):
             api.testsuite.__init__(self, name=name)
             self.skips = api._cast(int, skips)
@@ -57,11 +66,13 @@ class Report():
                 self, outfile, level, already_processed,
                 namespace_='', name_='testsuite'):
             api.testsuite.exportAttributes(self,
-                    outfile, level, already_processed,
-                    namespace_, name_)
+                                           outfile, level, already_processed,
+                                           namespace_, name_)
             if self.skips is not None and 'skips' not in already_processed:
                 already_processed.append('skips')
-                outfile.write(' skipped="%s"' % self.gds_format_integer(self.skips, input_name='skipped'))
+                outfile.write(' skipped="%s"' %
+                              self.gds_format_integer(self.skips,
+                                                      input_name='skipped'))
 
     def __init__(self):
         self.ts_dict = {}
@@ -76,7 +87,6 @@ class Report():
             testsuites.add_testsuite(ts)
         with open(filename, 'w') as fp:
             testsuites.export(fp, 0)
-
 
     def update(self, testname, ts_name, result, log, duration):
         """
@@ -98,31 +108,32 @@ class Report():
         tc.time = duration
 
         # Filter non-printable characters in log
-        log = ''.join(s for s in unicode(log, errors='ignore') if s in string.printable)
+        log = ''.join(s for s in unicode(log, errors='ignore')
+                      if s in string.printable)
 
         if 'FAIL' in result:
             tc.failure = self.failureType(
-                    message='Test %s has failed' % testname,
-                    type_='Failure',
-                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
+                message='Test %s has failed' % testname,
+                type_='Failure',
+                valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
             ts.failures += 1
         if 'TIMEOUT' in result:
             tc.failure = self.failureType(
-                    message='Test %s has timed out' % testname,
-                    type_='Timeout',
-                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
+                message='Test %s has timed out' % testname,
+                type_='Timeout',
+                valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
             ts.failures += 1
         elif 'ERROR' in result or 'INVALID' in result:
             tc.error = self.errorType(
-                    message='Test %s has encountered error' % testname,
-                    type_='Error',
-                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
+                message='Test %s has encountered error' % testname,
+                type_='Error',
+                valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
             ts.errors += 1
         elif 'SKIP' in result:
             tc.skip = self.skipType(
-                    message='Test %s has skipped' % testname,
-                    type_='Skip',
-                    valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
+                message='Test %s has skipped' % testname,
+                type_='Skip',
+                valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
             ts.skips += 1
         ts.add_testcase(tc)
         ts.tests += 1
@@ -132,18 +143,23 @@ class Report():
 class State():
     permit_keys = []
     permit_re = []
+
     def get_names(self):
         raise NotImplementedError('Function get_names not implemented for %s.'
                                   % self.__class__.__name__)
+
     def get_info(self, name):
         raise NotImplementedError('Function get_info not implemented for %s.'
                                   % self.__class__.__name__)
+
     def remove(self, name):
         raise NotImplementedError('Function remove not implemented for %s.'
                                   % self.__class__.__name__)
+
     def restore(self, name):
         raise NotImplementedError('Function restore not implemented for %s.'
                                   % self.__class__.__name__)
+
     def get_state(self):
         names = self.get_names()
         state = {}
@@ -190,7 +206,7 @@ class State():
         self.current_state = self.get_state()
         diff_msg = []
         new_items, del_items, unchanged_items = diff_dict(
-                self.backup_state, self.current_state)
+            self.backup_state, self.current_state)
         if new_items:
             diff_msg.append('Created %s(s):' % self.name)
             for item in new_items:
@@ -233,20 +249,22 @@ class State():
                     if key not in self.permit_keys and cur[key] != bak[key]:
                         item_changed = True
                         diff_msg.append('%s %s: %s changed: %s -> %s' % (
-                                self.name, item, key, bak[key], cur[key]))
+                            self.name, item, key, bak[key], cur[key]))
                 elif type(cur[key]) is list:
                     diff = difflib.unified_diff(
-                            bak[key],cur[key], lineterm="")
+                        bak[key], cur[key], lineterm="")
                     tmp_msg = []
                     for line in diff:
                         tmp_msg.append(line)
-                    if tmp_msg and not lines_permitable(tmp_msg, self.permit_re):
+                    if tmp_msg and not lines_permitable(tmp_msg,
+                                                        self.permit_re):
                         item_changed = True
-                        diff_msg.append('%s %s: "%s" changed:' % (self.name, item, key))
+                        diff_msg.append('%s %s: "%s" changed:' %
+                                        (self.name, item, key))
                         diff_msg += tmp_msg
                 else:
                     diff_msg.append('%s %s: %s: Invalid type %s.' % (
-                            self.name, item, key, type(cur[key])))
+                        self.name, item, key, type(cur[key])))
             if item_changed and recover:
                 try:
                     self.restore(self.backup_state[item])
@@ -259,6 +277,7 @@ class State():
 class DomainState(State):
     name = 'domain'
     permit_keys = ['id', 'cpu time', 'security label']
+
     def remove(self, name):
         dom = name
         if dom['state'] != 'shut off':
@@ -267,7 +286,8 @@ class DomainState(State):
                 raise Exception(str(res))
         if dom['persistent'] == 'yes':
             # Make sure the domain is remove anyway
-            res = virsh.undefine(dom['name'], options='--snapshots-metadata --managed-save')
+            res = virsh.undefine(
+                dom['name'], options='--snapshots-metadata --managed-save')
             if res.exit_status:
                 raise Exception(str(res))
 
@@ -309,7 +329,8 @@ class DomainState(State):
         for line in virsh.dominfo(name).stdout.strip().splitlines():
             key, value = line.split(':', 1)
             infos[key.lower()] = value.strip()
-        infos['inactive xml'] = virsh.dumpxml(name, extra='--inactive').stdout.splitlines()
+        infos['inactive xml'] = virsh.dumpxml(
+            name, extra='--inactive').stdout.splitlines()
         return infos
 
     def get_names(self):
@@ -318,6 +339,7 @@ class DomainState(State):
 
 class NetworkState(State):
     name = 'network'
+
     def remove(self, name):
         """
         Remove target network _net_.
@@ -384,7 +406,7 @@ class NetworkState(State):
                 key, value = line.split(':', 1)
             infos[key.lower()] = value.strip()
         infos['inactive xml'] = virsh.net_dumpxml(
-                name,'--inactive').stdout.splitlines()
+            name, '--inactive').stdout.splitlines()
         return infos
 
     def get_names(self):
@@ -396,6 +418,7 @@ class PoolState(State):
     name = 'pool'
     permit_keys = ['available', 'allocation']
     permit_re = [r'^[-+]\s*\<(capacity|allocation|available).*$']
+
     def remove(self, name):
         """
         Remove target pool _pool_.
@@ -423,7 +446,7 @@ class PoolState(State):
         fname = pool_file.name
         pool_file.writelines(pool['inactive xml'])
         pool_file.close()
-        
+
         try:
             if pool['persistent'] == 'yes':
                 res = virsh.pool_define(fname)
@@ -452,13 +475,15 @@ class PoolState(State):
         for line in virsh.pool_info(name).stdout.strip().splitlines():
             key, value = line.split(':', 1)
             infos[key.lower()] = value.strip()
-        infos['inactive xml'] = virsh.pool_dumpxml(name, '--inactive').splitlines()
+        infos['inactive xml'] = virsh.pool_dumpxml(
+            name, '--inactive').splitlines()
         infos['volumes'] = virsh.vol_list(name).stdout.strip().splitlines()[2:]
         return infos
 
     def get_names(self):
         lines = virsh.pool_list('--all').stdout.strip().splitlines()[2:]
         return [line.split()[0] for line in lines]
+
 
 class SecretState(State):
     name = 'secret'
@@ -493,7 +518,6 @@ class SecretState(State):
         finally:
             os.remove(fname)
 
-
     def get_info(self, name):
         infos = {}
         infos['uuid'] = name
@@ -504,11 +528,13 @@ class SecretState(State):
         lines = virsh.secret_list().stdout.strip().splitlines()[2:]
         return [line.split()[0] for line in lines]
 
+
 class MountState(State):
     name = 'mount'
     permit_keys = []
     permit_re = []
     info = {}
+
     def remove(self, name):
         info = name
         # ugly workaround for nfs which unable to umount
@@ -530,7 +556,7 @@ class MountState(State):
         """
         Get all mount infomations from /etc/mtab.
 
-        :return: A dict using mount point as keys and six element dict as value.
+        :return: A dict using mount point as keys and 6-element dict as value.
         """
         lines = file('/etc/mtab').read().splitlines()
         names = []
@@ -545,6 +571,7 @@ class MountState(State):
             names.append(mount_point)
             self.info[mount_point] = mount_entry
         return names
+
 
 class ServiceState(State):
     name = 'service'
@@ -578,11 +605,12 @@ class ServiceState(State):
             else:
                 status = 'stopped'
         if name == 'selinux':
-            status =  utils_selinux.get_status()
+            status = utils_selinux.get_status()
         return {'name': name, 'status': status}
 
     def get_names(self):
         return ['libvirtd', 'selinux']
+
 
 class DirState(State):
     name = 'directory'
@@ -609,7 +637,7 @@ class DirState(State):
             for fname in deleted_files:
                 fpath = os.path.join(name['dir-name'], fname)
                 open(fpath, 'a').close()
-        #TODO: record file/dir info and recover them separately
+        # TODO: record file/dir info and recover them separately
 
     def get_info(self, name):
         infos = {}
@@ -623,6 +651,7 @@ class DirState(State):
                 data_dir.get_tmp_dir(),
                 os.path.join(data_dir.get_data_dir(), 'images'),
                 '/var/lib/libvirt/images']
+
 
 class FileState(State):
     name = 'file'
@@ -652,29 +681,38 @@ class FileState(State):
 
 
 class LibvirtCI():
+
     def parse_args(self):
         parser = argparse.ArgumentParser(
-            description='Continuouse integration of virt-test libvirt test provider.')
-        parser.add_argument('--no', dest='no', action='store', default='', 
+            description='Continuouse integration of '
+            'virt-test libvirt test provider.')
+        parser.add_argument('--no', dest='no', action='store', default='',
                             help='Exclude specified tests.')
-        parser.add_argument('--only', dest='only', action='store', default='', 
+        parser.add_argument('--only', dest='only', action='store', default='',
                             help='Run only for specified tests.')
-        parser.add_argument('--check', dest='check', action='store', default='', 
-                            help='Check specified changes.')
-        parser.add_argument('--smoke', dest='smoke', action='store_true', 
+        parser.add_argument(
+            '--check', dest='check', action='store', default='',
+            help='Check specified changes.')
+        parser.add_argument('--smoke', dest='smoke', action='store_true',
                             help='Run one test for each script.')
-        parser.add_argument('--report', dest='report', action='store', default='xunit_result.xml', 
-                            help='Exclude specified tests.')
-        parser.add_argument('--white', dest='whitelist', action='store', default='', 
-                            help='Whitelist file contains specified test cases to run.')
-        parser.add_argument('--black', dest='blacklist', action='store', default='', 
-                            help='Blacklist file contains specified test cases to be excluded.')
+        parser.add_argument(
+            '--report', dest='report', action='store',
+            default='xunit_result.xml',
+            help='Exclude specified tests.')
+        parser.add_argument(
+            '--white', dest='whitelist', action='store', default='',
+            help='Whitelist file contains specified test cases to run.')
+        parser.add_argument(
+            '--black', dest='blacklist', action='store', default='',
+            help='Blacklist file contains specified '
+            'test cases to be excluded.')
         self.args = parser.parse_args()
 
-    def prepare_tests(self, whitelist='whitelist.test', blacklist='blacklist.test'):
+    def prepare_tests(self, whitelist='whitelist.test',
+                      blacklist='blacklist.test'):
         """
         Get all tests to be run.
-        
+
         When a whitelist is given, only tests in whitelist will be run.
         When a blacklist is given, tests in blacklist will be excluded.
         """
@@ -709,7 +747,7 @@ class LibvirtCI():
                                       r'\1', line)
                         tests.append(test)
             return tests
-        
+
         if self.args.whitelist:
             tests = read_tests_from_file(whitelist)
         else:
@@ -761,9 +799,10 @@ class LibvirtCI():
         print 'Running bootstrap'
         self.bootstrap()
 
-        print 'Removing VM', # TODO: use virt-test api remove VM
+        print 'Removing VM',  # TODO: use virt-test api remove VM
         sys.stdout.flush()
-        status, res = self.run_test('remove_guest.without_disk', need_check=False)
+        status, res = self.run_test(
+            'remove_guest.without_disk', need_check=False)
         if not 'PASS' in status:
             virsh.undefine('virt-tests-vm1', '--snapshots-metadata')
             print '   WARNING: Failed to remove guest'
@@ -771,10 +810,11 @@ class LibvirtCI():
         print 'Installing VM',
         sys.stdout.flush()
         status, res = self.run_test(
-                'unattended_install.import.import.default_install.aio_native',
-                restore_image=True, need_check=False)
+            'unattended_install.import.import.default_install.aio_native',
+            restore_image=True, need_check=False)
         if not 'PASS' in status:
-            raise Exception('   ERROR: Failed to install guest \n %s' % res.stderr)
+            raise Exception('   ERROR: Failed to install guest \n %s' %
+                            res.stderr)
         virsh.destroy('virt-tests-vm1')
 
     def run_test(self, test, restore_image=False, need_check=True):
@@ -782,7 +822,8 @@ class LibvirtCI():
         Run a specific test.
         """
         img_str = '' if restore_image else 'k'
-        cmd =  './run -v%st libvirt --keep-image-between-tests --tests %s' % (img_str, test)
+        cmd = './run -v%st libvirt --keep-image-between-tests --tests %s' % (
+            img_str, test)
         status = 'INVALID'
         try:
             res = utils.run(cmd, timeout=1200, ignore_status=True)
@@ -795,7 +836,7 @@ class LibvirtCI():
             status = 'TIMEOUT'
             res.duration = 1200
 
-        os.chdir(data_dir.get_root_dir()) # Check PWD
+        os.chdir(data_dir.get_root_dir())  # Check PWD
 
         out = ''
 
@@ -831,7 +872,9 @@ class LibvirtCI():
         report = Report()
         try:
             # service must put at first, or the result will be wrong.
-            self.states = [ServiceState(), FileState(), DirState(), DomainState(), NetworkState(), PoolState(), SecretState(), MountState()]
+            self.states = [ServiceState(), FileState(), DirState(),
+                           DomainState(), NetworkState(), PoolState(),
+                           SecretState(), MountState()]
             tests = self.prepare_tests()
             self.prepare_env()
             for state in self.states:
@@ -839,13 +882,15 @@ class LibvirtCI():
 
             for idx, test in enumerate(tests):
                 short_name = test.split('.', 2)[2]
-                print '%s (%d/%d) %s ' % (time.strftime('%X'), idx + 1, len(tests), short_name),
+                print '%s (%d/%d) %s ' % (time.strftime('%X'), idx + 1,
+                                          len(tests), short_name),
                 sys.stdout.flush()
 
                 status, res = self.run_test(test)
 
                 module_name = self.get_module_name(test)
-                report.update(test, module_name, status, res.stderr, res.duration)
+                report.update(test, module_name, status,
+                              res.stderr, res.duration)
                 report.save(sys.argv[1])
         except Exception:
             traceback.print_exc()
@@ -854,7 +899,8 @@ class LibvirtCI():
 
 
 def state_test():
-    states = [ServiceState(), FileState(), DirState(), DomainState(), NetworkState(), PoolState(), SecretState(), MountState()]
+    states = [ServiceState(), FileState(), DirState(), DomainState(),
+              NetworkState(), PoolState(), SecretState(), MountState()]
     for state in states:
         state.backup()
     utils.run('echo hello > /etc/exports')
