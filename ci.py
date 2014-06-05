@@ -744,11 +744,18 @@ class LibvirtCI():
             res = utils.run(cmd)
             out, err, exitcode = res.stdout, res.stderr, res.exit_status
             tests = []
+            module_names = set()
             for line in out.splitlines():
                 if line:
                     if line[0].isdigit():
                         test = re.sub(r'^[0-9]+ (.*) \(requires root\)$',
                                       r'\1', line)
+                        if self.args.smoke:
+                            name = self.get_module_name(test)
+                            if name in module_names:
+                                continue
+                            else:
+                                module_names.add(name)
                         tests.append(test)
             return tests
 
