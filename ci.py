@@ -6,6 +6,7 @@ import time
 import shutil
 import string
 import difflib
+import argparse
 import tempfile
 import traceback
 from virttest import common
@@ -21,8 +22,10 @@ from datetime import date
 
 class Report():
     class testcaseType(api.testcaseType):
-        def __init__(self, classname=None, name=None, time=None, error=None, failure=None, skip=None):
-            api.testcaseType.__init__(self, classname, name, time, error, failure)
+        def __init__(self, classname=None, name=None, time=None, error=None,
+                     failure=None, skip=None):
+            api.testcaseType.__init__(self, classname, name, time, error,
+                                      failure)
             self.skip = skip
 
         def exportChildren(self, outfile, level, namespace_='', name_='testcaseType', fromsubclass_=False):
@@ -109,7 +112,7 @@ class Report():
                     type_='Timeout',
                     valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
             ts.failures += 1
-        elif 'ERROR' in result:
+        elif 'ERROR' in result or 'INVALID' in result:
             tc.error = self.errorType(
                     message='Test %s has encountered error' % testname,
                     type_='Error',
@@ -649,6 +652,25 @@ class FileState(State):
 
 
 class LibvirtCI():
+    def parse_args(self):
+        parser = argparse.ArgumentParser(
+            description='Continuouse integration of virt-test libvirt test provider.')
+        parser.add_argument('--no', dest='no', action='store', default='', 
+                            help='Exclude specified tests.')
+        parser.add_argument('--only', dest='only', action='store', default='', 
+                            help='Run only for specified tests.')
+        parser.add_argument('--check', dest='check', action='store', default='', 
+                            help='Check specified changes.')
+        parser.add_argument('--smoke', dest='smoke', action='store_true', 
+                            help='Run one test for each script.')
+        parser.add_argument('--report', dest='report', action='store', default='xunit_result.xml', 
+                            help='Exclude specified tests.')
+        parser.add_argument('--white', dest='whitelist', action='store', default='', 
+                            help='Whitelist file contains specified test cases to run.')
+        parser.add_argument('--black', dest='blacklist', action='store', default='', 
+                            help='Blacklist file contains specified test cases to be excluded.')
+        self.args = parser.parse_args()
+
     def prepare_tests(self, whitelist='whitelist.test', blacklist='blacklist.test'):
         """
         Get all tests to be run.
@@ -674,7 +696,10 @@ class LibvirtCI():
             """
             Get all libvirt tests.
             """
-            res = utils.run('./run -t libvirt --list-tests')
+            cmd = './run -t libvirt --list-tests --no io-github-autotest-qemu'
+            if self.args.no:
+                cmd += ',%s' % self.args.no
+            res = utils.run(cmd)
             out, err, exitcode = res.stdout, res.stderr, res.exit_status
             tests = []
             for line in out.splitlines():
@@ -682,16 +707,18 @@ class LibvirtCI():
                     if line[0].isdigit():
                         test = re.sub(r'^[0-9]+ (.*) \(requires root\)$',
                                       r'\1', line)
-                        if test.startswith('type_specific'):
-                            tests.append(test)
+                        tests.append(test)
             return tests
-
-        tests = read_tests_from_file(whitelist)
-        if not tests:
+        
+        if self.args.whitelist:
+            tests = read_tests_from_file(whitelist)
+        else:
             tests = get_all_tests()
-        black_tests = read_tests_from_file(blacklist)
-        if black_tests:
+
+        if self.args.blacklist:
+            black_tests = read_tests_from_file(blacklist)
             tests = [t for t in tests if t not in black_tests]
+
         with open('run.test', 'w') as fp:
             for test in tests:
                 fp.write(test + '\n')
@@ -800,6 +827,7 @@ class LibvirtCI():
         """
         Run continuous integrate for virt-test test cases.
         """
+        self.parse_args()
         report = Report()
         try:
             # service must put at first, or the result will be wrong.
@@ -822,7 +850,7 @@ class LibvirtCI():
         except Exception:
             traceback.print_exc()
         finally:
-            report.save(sys.argv[1])
+            report.save(self.args.report)
 
 
 def state_test():
@@ -841,6 +869,7 @@ def state_test():
         lines = state.check(recover=True)
         for line in lines:
             print line
+
 
 if __name__ == '__main__':
 #    state_test()
