@@ -706,6 +706,10 @@ class LibvirtCI():
             '--black', dest='blacklist', action='store', default='',
             help='Blacklist file contains specified '
             'test cases to be excluded.')
+        parser.add_argument('--change', dest='change', action='store',
+                            default='', help='A file contains changed files '
+                            'in tp-libvirt repo. the file can be get from '
+                            '"git diff --name-only > $FILENAME"')
         self.args = parser.parse_args()
 
     def prepare_tests(self, whitelist='whitelist.test',
@@ -734,9 +738,9 @@ class LibvirtCI():
             """
             Get all libvirt tests.
             """
-            cmd = './run -t libvirt --list-tests --no io-github-autotest-qemu'
-            if self.args.no:
-                cmd += ',%s' % self.args.no
+            cmd = './run -t libvirt --list-tests'
+            if self.nos:
+                cmd += ' --no %s' % ','.join(self.nos)
             res = utils.run(cmd)
             out, err, exitcode = res.stdout, res.stderr, res.exit_status
             tests = []
@@ -748,10 +752,48 @@ class LibvirtCI():
                         tests.append(test)
             return tests
 
+        def change_to_only(change_file):
+            """
+            Transform the content of a change file to a only set.
+            """
+            onlys = set()
+            with open(change_file) as fin:
+                for line in fin:
+                    filename = line.strip()
+                    res = re.match('libvirt/tests/(cfg|src)/(.*).(cfg|py)',
+                                   filename)
+                    if res:
+                        cfg_path = 'libvirt/tests/cfg/%s.cfg' % res.groups()[1]
+                        tp_dir = data_dir.get_test_provider_dir(
+                            'io-github-autotest-libvirt')
+                        cfg_path = os.path.join(tp_dir, cfg_path)
+                        try:
+                            with open(cfg_path) as fcfg:
+                                only = fcfg.readline().strip()
+                                only = only.lstrip('-').rstrip(':').strip()
+                                onlys.add(only)
+                        except:
+                            pass
+            return onlys
+
+        self.nos = set(['io-github-autotest-qemu'])
+        self.onlys = set()
+        if self.args.only:
+            self.onlys |= set(self.args.only.split(','))
+        if self.args.no:
+            self.nos |= set(self.args.no.split(','))
+        if self.args.change:
+            self.onlys &= change_to_only(self.args.change)
+
         if self.args.whitelist:
             tests = read_tests_from_file(whitelist)
         else:
             tests = get_all_tests()
+
+        filtered_tests = []
+        for item in self.onlys:
+            filtered_tests += [t for t in tests if item in t]
+        tests = filtered_tests
 
         if self.args.blacklist:
             black_tests = read_tests_from_file(blacklist)
@@ -891,7 +933,7 @@ class LibvirtCI():
                 module_name = self.get_module_name(test)
                 report.update(test, module_name, status,
                               res.stderr, res.duration)
-                report.save(sys.argv[1])
+                report.save(self.args.report)
         except Exception:
             traceback.print_exc()
         finally:
