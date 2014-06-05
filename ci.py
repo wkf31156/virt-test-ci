@@ -800,10 +800,11 @@ class LibvirtCI():
         else:
             tests = get_all_tests()
 
-        filtered_tests = []
-        for item in self.onlys:
-            filtered_tests += [t for t in tests if item in t]
-        tests = filtered_tests
+        if self.onlys:
+            filtered_tests = []
+            for item in self.onlys:
+                filtered_tests += [t for t in tests if item in t]
+            tests = filtered_tests
 
         if self.args.blacklist:
             black_tests = read_tests_from_file(blacklist)
