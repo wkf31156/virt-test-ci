@@ -690,22 +690,20 @@ class LibvirtCI():
                             help='Exclude specified tests.')
         parser.add_argument('--only', dest='only', action='store', default='',
                             help='Run only for specified tests.')
-        parser.add_argument(
-            '--check', dest='check', action='store', default='',
-            help='Check specified changes.')
+        parser.add_argument('--check', dest='check', action='store',
+                            default='',
+                            help='Check specified changes.')
         parser.add_argument('--smoke', dest='smoke', action='store_true',
                             help='Run one test for each script.')
-        parser.add_argument(
-            '--report', dest='report', action='store',
-            default='xunit_result.xml',
-            help='Exclude specified tests.')
-        parser.add_argument(
-            '--white', dest='whitelist', action='store', default='',
-            help='Whitelist file contains specified test cases to run.')
-        parser.add_argument(
-            '--black', dest='blacklist', action='store', default='',
-            help='Blacklist file contains specified '
-            'test cases to be excluded.')
+        parser.add_argument('--report', dest='report', action='store',
+                            default='xunit_result.xml',
+                            help='Exclude specified tests.')
+        parser.add_argument('--white', dest='whitelist', action='store',
+                            default='', help='Whitelist file contains '
+                            'specified test cases to run.')
+        parser.add_argument('--black', dest='blacklist', action='store',
+                            default='', help='Blacklist file contains '
+                            'specified test cases to be excluded.')
         parser.add_argument('--change', dest='change', action='store',
                             default='', help='A file contains changed files '
                             'in tp-libvirt repo. the file can be get from '
