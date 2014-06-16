@@ -3,6 +3,7 @@ import re
 import os
 import sys
 import time
+import uuid
 import shutil
 import string
 import difflib
@@ -704,6 +705,12 @@ class LibvirtCI():
         parser.add_argument('--black', dest='blacklist', action='store',
                             default='', help='Blacklist file contains '
                             'specified test cases to be excluded.')
+        parser.add_argument('--pull-virt-test', dest='virt_test_pull',
+                            action='store', default='',
+                            help='Merge specified virt-test pull requests')
+        parser.add_argument('--pull-libvirt', dest='libvirt_pull',
+                            action='store', default='',
+                            help='Merge specified tp-libvirt pull requests')
         parser.add_argument('--change', dest='change', action='store',
                             default='', help='A file contains changed files '
                             'in tp-libvirt repo. the file can be get from '
@@ -915,11 +922,72 @@ class LibvirtCI():
         sys.stdout.flush()
         return status, res
 
+    def prepare_repos(self):
+        """
+        Prepare repos for the tests.
+        """
+        def merge_pulls(pull_nos):
+            branch_uuid = uuid.uuid4()
+            cmd = 'git checkout -b %s' % branch_uuid
+            res = utils.run(cmd, ignore_status=True)
+            if res.exit_status:
+                print res
+
+            for pull_no in pull_nos:
+                cmd = 'git pull origin pull/%s/merge' % pull_no
+                res = utils.run(cmd, ignore_status=True)
+                if res.exit_status:
+                    print res
+                    print 'Failed when pulling #%s' % pull_no
+            return branch_uuid
+
+
+        self.virt_branch_uuid, self.libvirt_branch_uuid = None, None
+
+        if self.args.virt_test_pull:
+            os.chdir(data_dir.get_root_dir())
+            self.virt_branch_uuid = merge_pulls(
+                    self.args.virt_test_pull.split(','))
+
+
+        if self.args.libvirt_pull:
+            os.chdir(data_dir.get_test_provider_dir(
+                'io-github-autotest-libvirt'))
+            self.libvirt_branch_uuid = merge_pulls(
+                    self.args.libvirt_pull.split(','))
+
+        os.chdir(data_dir.get_root_dir())
+
+    def restore_repos(self):
+        """
+        Checkout master branch and remove test branch.
+        """
+        def restore_repo(branch_uuid):
+            cmd = 'git checkout master'
+            res = utils.run(cmd, ignore_status=True)
+            if res.exit_status:
+                print res
+            cmd = 'git branch -D %s' % branch_uuid
+            res = utils.run(cmd, ignore_status=True)
+            if res.exit_status:
+                print res
+
+        if self.virt_branch_uuid:
+            os.chdir(data_dir.get_root_dir())
+            restore_repo(self.virt_branch_uuid)
+
+        if self.libvirt_branch_uuid:
+            os.chdir(data_dir.get_test_provider_dir(
+                'io-github-autotest-libvirt'))
+            restore_repo(self.libvirt_branch_uuid)
+        os.chdir(data_dir.get_root_dir())
+
     def run(self):
         """
         Run continuous integrate for virt-test test cases.
         """
         self.parse_args()
+        self.prepare_repos()
         report = Report()
         try:
             # service must put at first, or the result will be wrong.
@@ -946,6 +1014,7 @@ class LibvirtCI():
         except Exception:
             traceback.print_exc()
         finally:
+            self.restore_repos()
             report.save(self.args.report)
 
 
