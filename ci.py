@@ -789,13 +789,13 @@ class LibvirtCI():
             return onlys
 
         self.nos = set(['io-github-autotest-qemu'])
-        self.onlys = set()
+        self.onlys = None
         if self.args.only:
-            self.onlys |= set(self.args.only.split(','))
+            self.onlys = set(self.args.only.split(','))
         if self.args.no:
             self.nos |= set(self.args.no.split(','))
         if self.args.change:
-            if self.onlys:
+            if self.onlys is not None:
                 self.onlys &= change_to_only(self.args.change)
             else:
                 self.onlys = change_to_only(self.args.change)
@@ -805,7 +805,7 @@ class LibvirtCI():
         else:
             tests = get_all_tests()
 
-        if self.onlys:
+        if self.onlys is not None:
             filtered_tests = []
             for item in self.onlys:
                 filtered_tests += [t for t in tests if item in t]
