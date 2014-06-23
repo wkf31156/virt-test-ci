@@ -711,10 +711,9 @@ class LibvirtCI():
         parser.add_argument('--pull-libvirt', dest='libvirt_pull',
                             action='store', default='',
                             help='Merge specified tp-libvirt pull requests')
-        parser.add_argument('--change', dest='change', action='store',
-                            default='', help='A file contains changed files '
-                            'in tp-libvirt repo. the file can be get from '
-                            '"git diff --name-only > $FILENAME"')
+        parser.add_argument('--only-change', dest='only_change',
+                            action='store_true', help='Only test tp-libvirt '
+                            'test cases related to changed files.')
         self.args = parser.parse_args()
 
     def prepare_tests(self, whitelist='whitelist.test',
@@ -764,28 +763,27 @@ class LibvirtCI():
                         tests.append(test)
             return tests
 
-        def change_to_only(change_file):
+        def change_to_only(change_list):
             """
             Transform the content of a change file to a only set.
             """
             onlys = set()
-            with open(change_file) as fin:
-                for line in fin:
-                    filename = line.strip()
-                    res = re.match('libvirt/tests/(cfg|src)/(.*).(cfg|py)',
-                                   filename)
-                    if res:
-                        cfg_path = 'libvirt/tests/cfg/%s.cfg' % res.groups()[1]
-                        tp_dir = data_dir.get_test_provider_dir(
-                            'io-github-autotest-libvirt')
-                        cfg_path = os.path.join(tp_dir, cfg_path)
-                        try:
-                            with open(cfg_path) as fcfg:
-                                only = fcfg.readline().strip()
-                                only = only.lstrip('-').rstrip(':').strip()
-                                onlys.add(only)
-                        except:
-                            pass
+            for line in change_list:
+                filename = line.strip()
+                res = re.match('libvirt/tests/(cfg|src)/(.*).(cfg|py)',
+                               filename)
+                if res:
+                    cfg_path = 'libvirt/tests/cfg/%s.cfg' % res.groups()[1]
+                    tp_dir = data_dir.get_test_provider_dir(
+                        'io-github-autotest-libvirt')
+                    cfg_path = os.path.join(tp_dir, cfg_path)
+                    try:
+                        with open(cfg_path) as fcfg:
+                            only = fcfg.readline().strip()
+                            only = only.lstrip('-').rstrip(':').strip()
+                            onlys.add(only)
+                    except:
+                        pass
             return onlys
 
         self.nos = set(['io-github-autotest-qemu'])
@@ -794,11 +792,11 @@ class LibvirtCI():
             self.onlys = set(self.args.only.split(','))
         if self.args.no:
             self.nos |= set(self.args.no.split(','))
-        if self.args.change:
+        if self.args.only_change:
             if self.onlys is not None:
-                self.onlys &= change_to_only(self.args.change)
+                self.onlys &= change_to_only(self.libvirt_file_changed)
             else:
-                self.onlys = change_to_only(self.args.change)
+                self.onlys = change_to_only(self.libvirt_file_changed)
 
         if self.args.whitelist:
             tests = read_tests_from_file(whitelist)
@@ -932,6 +930,7 @@ class LibvirtCI():
             res = utils.run(cmd, ignore_status=True)
             if res.exit_status:
                 print res
+                raise Exception('Failed to create branch %s' % branch_name)
 
             for pull_no in pull_nos:
                 patch_url = ('https://github.com/autotest'
@@ -943,23 +942,36 @@ class LibvirtCI():
                     res = utils.run(cmd, ignore_status=True)
                 except:
                     print res
-                    print 'Failed applying patch %s' % pull_no
+                    raise Exception('Failed applying patch %s' % pull_no)
                 finally:
                     os.remove(patch_file)
             return branch_name
+
+        def file_changed(repo_name):
+            cmd = 'git diff master --name-only'
+            res = utils.run(cmd, ignore_status=True)
+            if res.exit_status:
+                print res
+                raise Exception("Failed to get diff info against master")
+
+            return res.stdout.strip().splitlines()
 
         self.virt_branch_name, self.libvirt_branch_name = None, None
 
         if self.args.virt_test_pull:
             os.chdir(data_dir.get_root_dir())
-            self.virt_branch_name = merge_pulls("virt-test",
+            self.virt_branch_name = merge_pulls(
+                "virt-test",
                 self.args.virt_test_pull.split(','))
+            self.virt_file_changed = file_changed("virt-test")
 
         if self.args.libvirt_pull:
             os.chdir(data_dir.get_test_provider_dir(
                 'io-github-autotest-libvirt'))
-            self.libvirt_branch_name = merge_pulls("tp-libvirt",
+            self.libvirt_branch_name = merge_pulls(
+                "tp-libvirt",
                 self.args.libvirt_pull.split(','))
+            self.libvirt_file_changed = file_changed("tp-libvirt")
 
         os.chdir(data_dir.get_root_dir())
 
