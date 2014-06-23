@@ -3,7 +3,7 @@ import re
 import os
 import sys
 import time
-import uuid
+import urllib
 import shutil
 import string
 import difflib
@@ -926,35 +926,40 @@ class LibvirtCI():
         """
         Prepare repos for the tests.
         """
-        def merge_pulls(pull_nos):
-            branch_uuid = uuid.uuid4()
-            cmd = 'git checkout -b %s' % branch_uuid
+        def merge_pulls(repo_name, pull_nos):
+            branch_name = ','.join(pull_nos)
+            cmd = 'git checkout -b %s' % branch_name
             res = utils.run(cmd, ignore_status=True)
             if res.exit_status:
                 print res
 
             for pull_no in pull_nos:
-                cmd = 'git pull origin pull/%s/merge' % pull_no
-                res = utils.run(cmd, ignore_status=True)
-                if res.exit_status:
+                patch_url = ('https://github.com/autotest'
+                             '/%s/pull/%s.patch' % (repo_name, pull_no))
+                patch_file = "/tmp/%s.patch" % pull_no
+                urllib.urlretrieve(patch_url, patch_file)
+                try:
+                    cmd = 'git am -3 %s' % patch_file
+                    res = utils.run(cmd, ignore_status=True)
+                except:
                     print res
-                    print 'Failed when pulling #%s' % pull_no
-            return branch_uuid
+                    print 'Failed applying patch %s' % pull_no
+                finally:
+                    os.remove(patch_file)
+            return branch_name
 
-
-        self.virt_branch_uuid, self.libvirt_branch_uuid = None, None
+        self.virt_branch_name, self.libvirt_branch_name = None, None
 
         if self.args.virt_test_pull:
             os.chdir(data_dir.get_root_dir())
-            self.virt_branch_uuid = merge_pulls(
-                    self.args.virt_test_pull.split(','))
-
+            self.virt_branch_name = merge_pulls("virt-test",
+                self.args.virt_test_pull.split(','))
 
         if self.args.libvirt_pull:
             os.chdir(data_dir.get_test_provider_dir(
                 'io-github-autotest-libvirt'))
-            self.libvirt_branch_uuid = merge_pulls(
-                    self.args.libvirt_pull.split(','))
+            self.libvirt_branch_name = merge_pulls("tp-libvirt",
+                self.args.libvirt_pull.split(','))
 
         os.chdir(data_dir.get_root_dir())
 
@@ -962,24 +967,24 @@ class LibvirtCI():
         """
         Checkout master branch and remove test branch.
         """
-        def restore_repo(branch_uuid):
+        def restore_repo(branch_name):
             cmd = 'git checkout master'
             res = utils.run(cmd, ignore_status=True)
             if res.exit_status:
                 print res
-            cmd = 'git branch -D %s' % branch_uuid
+            cmd = 'git branch -D %s' % branch_name
             res = utils.run(cmd, ignore_status=True)
             if res.exit_status:
                 print res
 
-        if self.virt_branch_uuid:
+        if self.virt_branch_name:
             os.chdir(data_dir.get_root_dir())
-            restore_repo(self.virt_branch_uuid)
+            restore_repo(self.virt_branch_name)
 
-        if self.libvirt_branch_uuid:
+        if self.libvirt_branch_name:
             os.chdir(data_dir.get_test_provider_dir(
                 'io-github-autotest-libvirt'))
-            restore_repo(self.libvirt_branch_uuid)
+            restore_repo(self.libvirt_branch_name)
         os.chdir(data_dir.get_root_dir())
 
     def run(self):
