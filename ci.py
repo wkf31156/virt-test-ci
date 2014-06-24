@@ -133,13 +133,13 @@ class Report():
             ts = self.ts_dict[ts_name]
 
         tc = self.testcaseType()
-        tc.system_out = log
         tc.name = testname
         tc.time = duration
 
         # Filter non-printable characters in log
         log = ''.join(s for s in unicode(log, errors='ignore')
                       if s in string.printable)
+        tc.system_out = log
 
         error_msg = []
         for line in log.splitlines():
