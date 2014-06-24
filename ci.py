@@ -30,6 +30,8 @@ class Report():
             api.testcaseType.__init__(self, classname, name, time, error,
                                       failure)
             self.skip = skip
+            self.system_out = None
+            self.system_err = None
 
         def exportChildren(self, outfile, level, namespace_='',
                            name_='testcaseType', fromsubclass_=False):
@@ -37,9 +39,29 @@ class Report():
                 self, outfile, level, namespace_, name_, fromsubclass_)
             if self.skip is not None:
                 self.skip.export(outfile, level, namespace_, name_='skipped')
+            if self.system_out is not None:
+                outfile.write(
+                    '<%ssystem-out><![CDATA[%s]]></%ssystem-out>\n' % (
+                        namespace_,
+                        self.gds_format_string(
+                            api.quote_xml(self.system_out).encode(
+                                api.ExternalEncoding),
+                            input_name='system-out'),
+                        namespace_))
+            if self.system_err is not None:
+                outfile.write(
+                    '<%ssystem-err><![CDATA[%s]]></%ssystem-err>\n' % (
+                        namespace_,
+                        self.gds_format_string(
+                            api.quote_xml(self.system_out).encode(
+                                api.ExternalEncoding),
+                            input_name='system-err'),
+                        namespace_))
 
         def hasContent_(self):
             if (
+                self.system_out is not None or
+                self.system_err is not None or
                 self.error is not None or
                 self.failure is not None or
                 self.skip is not None
@@ -105,6 +127,7 @@ class Report():
             ts = self.ts_dict[ts_name]
 
         tc = self.testcaseType()
+        tc.system_out = log
         tc.name = testname
         tc.time = duration
 
@@ -112,29 +135,34 @@ class Report():
         log = ''.join(s for s in unicode(log, errors='ignore')
                       if s in string.printable)
 
+        error_msg = []
+        for line in log.splitlines():
+            if 'ERROR|' in line:
+                error_msg.append(line[9:])
+
         if 'FAIL' in result:
+            error_msg.insert(0, 'Test %s has failed' % testname)
             tc.failure = self.failureType(
-                message='Test %s has failed' % testname,
-                type_='Failure',
-                valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
+                message='&#10;'.join(error_msg),
+                type_='Failure')
             ts.failures += 1
         if 'TIMEOUT' in result:
+            error_msg.insert(0, 'Test %s has timed out' % testname)
             tc.failure = self.failureType(
-                message='Test %s has timed out' % testname,
-                type_='Timeout',
-                valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
+                message='&#10;'.join(error_msg),
+                type_='Timeout')
             ts.failures += 1
         elif 'ERROR' in result or 'INVALID' in result:
+            error_msg.insert(0, 'Test %s has encountered error' % testname)
             tc.error = self.errorType(
-                message='Test %s has encountered error' % testname,
-                type_='Error',
-                valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
+                message='&#10;'.join(error_msg),
+                type_='Error')
             ts.errors += 1
         elif 'SKIP' in result:
+            error_msg.insert(0, 'Test %s is skipped' % testname)
             tc.skip = self.skipType(
-                message='Test %s has skipped' % testname,
-                type_='Skip',
-                valueOf_="\n<![CDATA[\n%s\n]]>\n" % log)
+                message='&#10;'.join(error_msg),
+                type_='Skip')
             ts.skips += 1
         ts.add_testcase(tc)
         ts.tests += 1
