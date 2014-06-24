@@ -144,6 +144,8 @@ class Report():
         error_msg = []
         for line in log.splitlines():
             if 'ERROR|' in line:
+                line = ''.join(s for s in unicode(line, errors='ignore')
+                              if s in string.printable)
                 error_msg.append(line[9:])
 
         if 'FAIL' in result:
