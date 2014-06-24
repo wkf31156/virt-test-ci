@@ -43,19 +43,13 @@ class Report():
                 outfile.write(
                     '<%ssystem-out><![CDATA[%s]]></%ssystem-out>\n' % (
                         namespace_,
-                        self.gds_format_string(
-                            api.quote_xml(self.system_out).encode(
-                                api.ExternalEncoding),
-                            input_name='system-out'),
+                        self.system_out,
                         namespace_))
             if self.system_err is not None:
                 outfile.write(
                     '<%ssystem-err><![CDATA[%s]]></%ssystem-err>\n' % (
                         namespace_,
-                        self.gds_format_string(
-                            api.quote_xml(self.system_out).encode(
-                                api.ExternalEncoding),
-                            input_name='system-err'),
+                        self.system_err,
                         namespace_))
 
         def hasContent_(self):
@@ -71,10 +65,22 @@ class Report():
                 return False
 
     class failureType(api.failureType):
-        pass
+        def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='failureType'):
+            if self.message is not None and 'message' not in already_processed:
+                already_processed.append('message')
+                outfile.write(' message=%s' % self.message)
+            if self.type_ is not None and 'type_' not in already_processed:
+                already_processed.append('type_')
+                outfile.write(' type=%s' % self.type_)
 
     class errorType(api.errorType):
-        pass
+        def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='errorType'):
+            if self.message is not None and 'message' not in already_processed:
+                already_processed.append('message')
+                outfile.write(' message=%s' % self.message)
+            if self.type_ is not None and 'type_' not in already_processed:
+                already_processed.append('type_')
+                outfile.write(' type=%s' % self.type_)
 
     class skipType(api.failureType):
         pass
