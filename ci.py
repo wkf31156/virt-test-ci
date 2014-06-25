@@ -68,7 +68,7 @@ class Report():
         def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='failureType'):
             if self.message is not None and 'message' not in already_processed:
                 already_processed.append('message')
-                outfile.write(' message=%s' % self.message)
+                outfile.write(' message="%s"' % self.message)
             if self.type_ is not None and 'type_' not in already_processed:
                 already_processed.append('type_')
                 outfile.write(' type=%s' % self.type_)
@@ -77,7 +77,7 @@ class Report():
         def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='errorType'):
             if self.message is not None and 'message' not in already_processed:
                 already_processed.append('message')
-                outfile.write(' message=%s' % self.message)
+                outfile.write(' message="%s"' % self.message)
             if self.type_ is not None and 'type_' not in already_processed:
                 already_processed.append('type_')
                 outfile.write(' type=%s' % self.type_)
@@ -122,6 +122,17 @@ class Report():
         """
         Insert a new item into report.
         """
+        def escape_str(inStr):
+            """
+            Escape a string for HTML use.
+            """
+            s1 = (isinstance(inStr, basestring) and inStr or
+                  '%s' % inStr)
+            s1 = s1.replace('&', '&amp;')
+            s1 = s1.replace('<', '&lt;')
+            s1 = s1.replace('>', '&gt;')
+            s1 = s1.replace('"', "&quot;")
+            return s1
 
         if not ts_name in self.ts_dict:
             self.ts_dict[ts_name] = self.testsuite(name=ts_name)
@@ -141,6 +152,8 @@ class Report():
         log = ''.join(s for s in unicode(log, errors='ignore')
                       if s in string.printable)
         tc.system_out = log
+
+        error_msg = [escape_str(l) for l in error_msg]
 
         if 'FAIL' in result:
             error_msg.insert(0, 'Test %s has failed' % testname)
