@@ -71,7 +71,7 @@ class Report():
                 outfile.write(' message="%s"' % self.message)
             if self.type_ is not None and 'type_' not in already_processed:
                 already_processed.append('type_')
-                outfile.write(' type=%s' % self.type_)
+                outfile.write(' type="%s"' % self.type_)
 
     class errorType(api.errorType):
         def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='errorType'):
