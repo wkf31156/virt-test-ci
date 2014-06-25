@@ -103,8 +103,9 @@ class Report():
                               self.gds_format_integer(self.skips,
                                                       input_name='skipped'))
 
-    def __init__(self):
+    def __init__(self, fail_diff=False):
         self.ts_dict = {}
+        self.fail_diff = fail_diff
 
     def save(self, filename):
         """
@@ -117,7 +118,7 @@ class Report():
         with open(filename, 'w') as fp:
             testsuites.export(fp, 0)
 
-    def update(self, testname, ts_name, result, log, duration):
+    def update(self, testname, ts_name, result, log, error_msg, duration):
         """
         Insert a new item into report.
         """
@@ -141,20 +142,13 @@ class Report():
                       if s in string.printable)
         tc.system_out = log
 
-        error_msg = []
-        for line in log.splitlines():
-            if 'ERROR|' in line:
-                line = ''.join(s for s in unicode(line, errors='ignore')
-                              if s in string.printable)
-                error_msg.append(line[9:])
-
         if 'FAIL' in result:
             error_msg.insert(0, 'Test %s has failed' % testname)
             tc.failure = self.failureType(
                 message='&#10;'.join(error_msg),
                 type_='Failure')
             ts.failures += 1
-        if 'TIMEOUT' in result:
+        elif 'TIMEOUT' in result:
             error_msg.insert(0, 'Test %s has timed out' % testname)
             tc.failure = self.failureType(
                 message='&#10;'.join(error_msg),
@@ -172,6 +166,12 @@ class Report():
                 message='&#10;'.join(error_msg),
                 type_='Skip')
             ts.skips += 1
+        elif 'DIFF' in result and self.fail_diff:
+            error_msg.insert(0, 'Test %s results dirty environment' % testname)
+            tc.failure = self.failureType(
+                message='&#10;'.join(error_msg),
+                type_='DIFF')
+            ts.failures += 1
         ts.add_testcase(tc)
         ts.tests += 1
         ts.timestamp = date.isoformat(date.today())
@@ -750,6 +750,9 @@ class LibvirtCI():
         parser.add_argument('--only-change', dest='only_change',
                             action='store_true', help='Only test tp-libvirt '
                             'test cases related to changed files.')
+        parser.add_argument('--fail-diff', dest='fail_diff',
+                            action='store_true', help='Report tests who do '
+                            'not clean up environment as a failure')
         self.args = parser.parse_args()
 
     def prepare_tests(self, whitelist='whitelist.test',
@@ -893,7 +896,7 @@ class LibvirtCI():
 
         print 'Removing VM',  # TODO: use virt-test api remove VM
         sys.stdout.flush()
-        status, res = self.run_test(
+        status, res, err_msg = self.run_test(
             'remove_guest.without_disk', need_check=False)
         if not 'PASS' in status:
             virsh.undefine('virt-tests-vm1', '--snapshots-metadata')
@@ -901,7 +904,7 @@ class LibvirtCI():
 
         print 'Installing VM',
         sys.stdout.flush()
-        status, res = self.run_test(
+        status, res, err_msg = self.run_test(
             'unattended_install.import.import.default_install.aio_native',
             restore_image=True, need_check=False)
         if not 'PASS' in status:
@@ -930,7 +933,7 @@ class LibvirtCI():
 
         os.chdir(data_dir.get_root_dir())  # Check PWD
 
-        out = ''
+        err_msg = []
 
         if need_check:
             diff = False
@@ -941,20 +944,22 @@ class LibvirtCI():
                         diff = True
                         status += ' DIFF'
                     for line in diffmsg:
-                        out += '   DIFF|%s\n' % line
+                        err_msg.append('   DIFF|%s' % line)
 
         print 'Result: %s %.2f s' % (status, res.duration)
 
         if 'FAIL' in status or 'ERROR' in status:
             for line in res.stderr.splitlines():
                 if 'ERROR|' in line:
-                    out += '  %s\n' % line[9:]
+                    err_msg.append('  %s' % line[9:])
         if status == 'INVALID' or status == 'TIMEOUT':
-            out += res.stdout
-        if out:
-            print out,
+            for line in res.stdout:
+                err_msg.append(line)
+        if err_msg:
+            for line in err_msg:
+                print line
         sys.stdout.flush()
-        return status, res
+        return status, res, err_msg
 
     def prepare_repos(self):
         """
@@ -1041,7 +1046,7 @@ class LibvirtCI():
         """
         self.parse_args()
         self.prepare_repos()
-        report = Report()
+        report = Report(self.args.fail_diff)
         try:
             # service must put at first, or the result will be wrong.
             self.states = [ServiceState(), FileState(), DirState(),
@@ -1058,11 +1063,11 @@ class LibvirtCI():
                                           len(tests), short_name),
                 sys.stdout.flush()
 
-                status, res = self.run_test(test)
+                status, res, err_msg = self.run_test(test)
 
                 module_name = self.get_module_name(test)
                 report.update(test, module_name, status,
-                              res.stderr, res.duration)
+                              res.stderr, err_msg, res.duration)
                 report.save(self.args.report)
         except Exception:
             traceback.print_exc()
