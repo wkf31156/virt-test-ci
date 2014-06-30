@@ -22,6 +22,9 @@ from datetime import date
 
 
 class Report():
+    """
+    This is a wrapper of autotest.client.tools.JUnit_api
+    """
 
     class testcaseType(api.testcaseType):
 
@@ -727,7 +730,9 @@ class FileState(State):
         return infos
 
     def get_names(self):
-        return ['/etc/exports']
+        return ['/etc/exports',
+                '/etc/libvirt/libvirtd.conf',
+                '/etc/libvirt/qemu.conf']
 
 
 class LibvirtCI():
@@ -1017,7 +1022,8 @@ class LibvirtCI():
             self.virt_branch_name = merge_pulls(
                 "virt-test",
                 self.args.virt_test_pull.split(','))
-            self.virt_file_changed = file_changed("virt-test")
+            if self.args.only_change:
+                self.virt_file_changed = file_changed("virt-test")
 
         if self.args.libvirt_pull:
             os.chdir(data_dir.get_test_provider_dir(
@@ -1025,7 +1031,8 @@ class LibvirtCI():
             self.libvirt_branch_name = merge_pulls(
                 "tp-libvirt",
                 self.args.libvirt_pull.split(','))
-            self.libvirt_file_changed = file_changed("tp-libvirt")
+            if self.args.only_change:
+                self.libvirt_file_changed = file_changed("tp-libvirt")
 
         os.chdir(data_dir.get_root_dir())
 
