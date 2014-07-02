@@ -7,7 +7,7 @@ import urllib
 import shutil
 import string
 import difflib
-import argparse
+import optparse
 import tempfile
 import traceback
 from virttest import common
@@ -738,40 +738,40 @@ class FileState(State):
 class LibvirtCI():
 
     def parse_args(self):
-        parser = argparse.ArgumentParser(
+        parser = optparse.OptionParser(
             description='Continuouse integration of '
             'virt-test libvirt test provider.')
-        parser.add_argument('--no', dest='no', action='store', default='',
+        parser.add_option('--no', dest='no', action='store', default='',
                             help='Exclude specified tests.')
-        parser.add_argument('--only', dest='only', action='store', default='',
+        parser.add_option('--only', dest='only', action='store', default='',
                             help='Run only for specified tests.')
-        parser.add_argument('--check', dest='check', action='store',
+        parser.add_option('--check', dest='check', action='store',
                             default='',
                             help='Check specified changes.')
-        parser.add_argument('--smoke', dest='smoke', action='store_true',
+        parser.add_option('--smoke', dest='smoke', action='store_true',
                             help='Run one test for each script.')
-        parser.add_argument('--report', dest='report', action='store',
+        parser.add_option('--report', dest='report', action='store',
                             default='xunit_result.xml',
                             help='Exclude specified tests.')
-        parser.add_argument('--white', dest='whitelist', action='store',
+        parser.add_option('--white', dest='whitelist', action='store',
                             default='', help='Whitelist file contains '
                             'specified test cases to run.')
-        parser.add_argument('--black', dest='blacklist', action='store',
+        parser.add_option('--black', dest='blacklist', action='store',
                             default='', help='Blacklist file contains '
                             'specified test cases to be excluded.')
-        parser.add_argument('--pull-virt-test', dest='virt_test_pull',
+        parser.add_option('--pull-virt-test', dest='virt_test_pull',
                             action='store', default='',
                             help='Merge specified virt-test pull requests')
-        parser.add_argument('--pull-libvirt', dest='libvirt_pull',
+        parser.add_option('--pull-libvirt', dest='libvirt_pull',
                             action='store', default='',
                             help='Merge specified tp-libvirt pull requests')
-        parser.add_argument('--only-change', dest='only_change',
+        parser.add_option('--only-change', dest='only_change',
                             action='store_true', help='Only test tp-libvirt '
                             'test cases related to changed files.')
-        parser.add_argument('--fail-diff', dest='fail_diff',
+        parser.add_option('--fail-diff', dest='fail_diff',
                             action='store_true', help='Report tests who do '
                             'not clean up environment as a failure')
-        self.args = parser.parse_args()
+        self.args, self.real_args = parser.parse_args()
 
     def prepare_tests(self, whitelist='whitelist.test',
                       blacklist='blacklist.test'):
