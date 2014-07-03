@@ -1,12 +1,22 @@
+diff --git a/shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg b/shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg
+index baede92..bcd5f57 100644
+--- a/shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg
++++ b/shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg
+@@ -1,6 +1,5 @@
+ - 19.x86_64:
+     image_name = images/jeos-19-64
+-    os_variant = fedora19
+     vm_arch_name = x86_64
+     shell_prompt = "^\[.*\][\#\$]\s*$"
+     no unattended_install..floppy_ks
 diff --git a/virttest/virsh.py b/virttest/virsh.py
-index 9a2dca9..df0a898 100644
+index 476d93a..15e5999 100644
 --- a/virttest/virsh.py
 +++ b/virttest/virsh.py
-@@ -511,6 +511,7 @@ def command(cmd, **dargs):
-         cmd = "%s%s%s" % (virsh_exec, uri_arg, cmd)
+@@ -656,6 +656,7 @@ def command(cmd, **dargs):
+ 
          # Raise exception if ignore_status is False
          ret = utils.run(cmd, verbose=debug, ignore_status=ignore_status)
 +        logging.debug(ret)
          # Mark return as not coming from persistent virsh session
          ret.from_session_id = None
- 
