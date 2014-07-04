@@ -1,8 +1,8 @@
 diff --git a/shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg b/shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg
-index baede92..bcd5f57 100644
+index baede92..694e5ac 100644
 --- a/shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg
 +++ b/shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg
-@@ -1,6 +1,5 @@
+@@ -1,6 +1,6 @@
  - 19.x86_64:
      image_name = images/jeos-19-64
 -    os_variant = fedora19
