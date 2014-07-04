@@ -6,6 +6,7 @@ index baede92..bcd5f57 100644
  - 19.x86_64:
      image_name = images/jeos-19-64
 -    os_variant = fedora19
++    os_variant = fedora18
      vm_arch_name = x86_64
      shell_prompt = "^\[.*\][\#\$]\s*$"
      no unattended_install..floppy_ks
