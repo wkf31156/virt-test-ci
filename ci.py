@@ -22,6 +22,7 @@ from datetime import date
 
 
 class Report():
+
     """
     This is a wrapper of autotest.client.tools.JUnit_api
     """
@@ -68,6 +69,7 @@ class Report():
                 return False
 
     class failureType(api.failureType):
+
         def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='failureType'):
             if self.message is not None and 'message' not in already_processed:
                 already_processed.append('message')
@@ -77,6 +79,7 @@ class Report():
                 outfile.write(' type="%s"' % self.type_)
 
     class errorType(api.errorType):
+
         def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='errorType'):
             if self.message is not None and 'message' not in already_processed:
                 already_processed.append('message')
@@ -742,35 +745,38 @@ class LibvirtCI():
             description='Continuouse integration of '
             'virt-test libvirt test provider.')
         parser.add_option('--no', dest='no', action='store', default='',
-                            help='Exclude specified tests.')
+                          help='Exclude specified tests.')
         parser.add_option('--only', dest='only', action='store', default='',
-                            help='Run only for specified tests.')
+                          help='Run only for specified tests.')
         parser.add_option('--check', dest='check', action='store',
-                            default='',
-                            help='Check specified changes.')
+                          default='',
+                          help='Check specified changes.')
         parser.add_option('--smoke', dest='smoke', action='store_true',
-                            help='Run one test for each script.')
+                          help='Run one test for each script.')
         parser.add_option('--report', dest='report', action='store',
-                            default='xunit_result.xml',
-                            help='Exclude specified tests.')
+                          default='xunit_result.xml',
+                          help='Exclude specified tests.')
         parser.add_option('--white', dest='whitelist', action='store',
-                            default='', help='Whitelist file contains '
-                            'specified test cases to run.')
+                          default='', help='Whitelist file contains '
+                          'specified test cases to run.')
         parser.add_option('--black', dest='blacklist', action='store',
-                            default='', help='Blacklist file contains '
-                            'specified test cases to be excluded.')
+                          default='', help='Blacklist file contains '
+                          'specified test cases to be excluded.')
         parser.add_option('--pull-virt-test', dest='virt_test_pull',
-                            action='store', default='',
-                            help='Merge specified virt-test pull requests')
+                          action='store', default='',
+                          help='Merge specified virt-test pull requests')
         parser.add_option('--pull-libvirt', dest='libvirt_pull',
-                            action='store', default='',
-                            help='Merge specified tp-libvirt pull requests')
+                          action='store', default='',
+                          help='Merge specified tp-libvirt pull requests')
         parser.add_option('--only-change', dest='only_change',
-                            action='store_true', help='Only test tp-libvirt '
-                            'test cases related to changed files.')
+                          action='store_true', help='Only test tp-libvirt '
+                          'test cases related to changed files.')
         parser.add_option('--fail-diff', dest='fail_diff',
-                            action='store_true', help='Report tests who do '
-                            'not clean up environment as a failure')
+                          action='store_true', help='Report tests who do '
+                          'not clean up environment as a failure')
+        parser.add_option('--retain-vm', dest='retain_vm',
+                          action='store_true', help='Do not reinstall VM '
+                          'before tests')
         self.args, self.real_args = parser.parse_args()
 
     def prepare_tests(self, whitelist='whitelist.test',
@@ -912,6 +918,9 @@ class LibvirtCI():
         print 'Running bootstrap'
         self.bootstrap()
 
+        if self.args.retain_vm:
+            return
+
         print 'Removing VM',  # TODO: use virt-test api remove VM
         sys.stdout.flush()
         status, res, err_msg = self.run_test(
@@ -971,7 +980,7 @@ class LibvirtCI():
                 if 'ERROR|' in line:
                     err_msg.append('  %s' % line[9:])
         if status == 'INVALID' or status == 'TIMEOUT':
-            for line in res.stdout:
+            for line in res.stdout.splitlines():
                 err_msg.append(line)
         if err_msg:
             for line in err_msg:
