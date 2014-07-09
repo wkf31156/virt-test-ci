@@ -777,6 +777,12 @@ class LibvirtCI():
         parser.add_option('--retain-vm', dest='retain_vm',
                           action='store_true', help='Do not reinstall VM '
                           'before tests')
+        parser.add_option('--pre-cmd', dest='pre_cmd',
+                          action='store', help='Run a command line after '
+                          'fetch the source code and before running the test.')
+        parser.add_option('--post-cmd', dest='post_cmd',
+                          action='store', help='Run a command line after '
+                          'running the test')
         self.args, self.real_args = parser.parse_args()
 
     def prepare_tests(self, whitelist='whitelist.test',
@@ -1075,6 +1081,12 @@ class LibvirtCI():
         """
         self.parse_args()
         self.prepare_repos()
+        if self.args.pre_cmd:
+            print 'Running command line "%s" before test.' % self.args.pre_cmd
+            res = utils.run(self.args.pre_cmd, ignore_status=True)
+            print 'Result:'
+            for line in str(res).splitlines():
+                print line
         report = Report(self.args.fail_diff)
         try:
             # service must put at first, or the result will be wrong.
@@ -1098,6 +1110,12 @@ class LibvirtCI():
                 report.update(test, module_name, status,
                               res.stderr, err_msg, res.duration)
                 report.save(self.args.report)
+            if self.args.post_cmd:
+                print 'Running command line "%s" after test.' % self.args.post_cmd
+                res = utils.run(self.args.post_cmd, ignore_status=True)
+                print 'Result:'
+                for line in str(res).splitlines():
+                    print line
         except Exception:
             traceback.print_exc()
         finally:
