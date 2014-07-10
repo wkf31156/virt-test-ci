@@ -950,8 +950,9 @@ class LibvirtCI():
         Run a specific test.
         """
         img_str = '' if restore_image else 'k'
-        cmd = './run -v%st libvirt --keep-image-between-tests --tests %s' % (
-            img_str, test)
+        down_str = '' if restore_image else '--no-downloads'
+        cmd = './run -v%st libvirt --keep-image-between-tests %s --tests %s' % (
+            img_str, down_str, test)
         status = 'INVALID'
         try:
             res = utils.run(cmd, timeout=1200, ignore_status=True)
@@ -983,7 +984,7 @@ class LibvirtCI():
 
         if 'FAIL' in status or 'ERROR' in status:
             for line in res.stderr.splitlines():
-                if 'ERROR|' in line:
+                if 'ERROR' in line:
                     err_msg.append('  %s' % line[9:])
         if status == 'INVALID' or status == 'TIMEOUT':
             for line in res.stdout.splitlines():
