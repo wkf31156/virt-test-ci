@@ -705,6 +705,8 @@ class DirState(State):
     def get_names(self):
         return ['/tmp',
                 data_dir.get_tmp_dir(),
+                data_dir.get_root_dir(),
+                os.path.join(data_dir.get_root_dir(), 'shared'),
                 os.path.join(data_dir.get_data_dir(), 'images'),
                 '/var/lib/libvirt/images']
 
@@ -768,6 +770,9 @@ class LibvirtCI():
         parser.add_option('--pull-libvirt', dest='libvirt_pull',
                           action='store', default='',
                           help='Merge specified tp-libvirt pull requests')
+        parser.add_option('--no-restore-pull', dest='no_restore_pull',
+                          action='store_true', help='Do not restore repo '
+                          'to branch master after test.')
         parser.add_option('--only-change', dest='only_change',
                           action='store_true', help='Only test tp-libvirt '
                           'test cases related to changed files.')
@@ -922,6 +927,7 @@ class LibvirtCI():
         Prepare the environment before all tests.
         """
         print 'Running bootstrap'
+        sys.stdout.flush()
         self.bootstrap()
 
         if self.args.retain_vm:
@@ -1120,7 +1126,8 @@ class LibvirtCI():
         except Exception:
             traceback.print_exc()
         finally:
-            self.restore_repos()
+            if not self.args.no_restore_pull:
+                self.restore_repos()
             report.save(self.args.report)
 
 
