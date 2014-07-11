@@ -705,7 +705,6 @@ class DirState(State):
     def get_names(self):
         return ['/tmp',
                 data_dir.get_tmp_dir(),
-                data_dir.get_root_dir(),
                 os.path.join(data_dir.get_root_dir(), 'shared'),
                 os.path.join(data_dir.get_data_dir(), 'images'),
                 '/var/lib/libvirt/images']
