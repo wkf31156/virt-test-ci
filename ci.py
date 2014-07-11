@@ -9,6 +9,7 @@ import string
 import difflib
 import optparse
 import tempfile
+import fileinput
 import traceback
 from virttest import common
 from virttest import utils_libvirtd, utils_selinux
@@ -705,6 +706,7 @@ class DirState(State):
     def get_names(self):
         return ['/tmp',
                 data_dir.get_tmp_dir(),
+                data_dir.get_root_dir(),
                 os.path.join(data_dir.get_root_dir(), 'shared'),
                 os.path.join(data_dir.get_data_dir(), 'images'),
                 '/var/lib/libvirt/images']
@@ -763,6 +765,12 @@ class LibvirtCI():
         parser.add_option('--black', dest='blacklist', action='store',
                           default='', help='Blacklist file contains '
                           'specified test cases to be excluded.')
+        parser.add_option('--img-url', dest='img_url', action='store',
+                          default='', help='Specify a URL to a custom image '
+                          'file')
+        parser.add_option('--password', dest='password', action='store',
+                          default='', help='Specify a password for logging '
+                          'into guest')
         parser.add_option('--pull-virt-test', dest='virt_test_pull',
                           action='store', default='',
                           help='Merge specified virt-test pull requests')
@@ -925,9 +933,37 @@ class LibvirtCI():
         """
         Prepare the environment before all tests.
         """
+
+        def replace_pattern_in_file(file, search_exp, replace_exp):
+            prog = re.compile(search_exp)
+            for line in fileinput.input(file, inplace=1):
+                match = prog.search(line)
+                if match:
+                    line = prog.sub(replace_exp, line)
+                sys.stdout.write(line)
+
         print 'Running bootstrap'
         sys.stdout.flush()
         self.bootstrap()
+        restore_image = True
+
+        if self.args.img_url:
+            def progress_callback(count, block_size, total_size):
+                percent = count * block_size * 100 / total_size
+                sys.stdout.write("\rDownloaded %2.2f%%" % percent)
+                sys.stdout.flush()
+            print 'Downloading image from %s.' % self.args.img_url
+            img_dir = os.path.join(
+                data_dir.get_data_dir(), 'images/jeos-19-64.qcow2'),
+            urllib.urlretrieve(self.args.img_url, img_dir[0], progress_callback)
+            restore_image = False
+            print '\nDownload completed.'
+
+        if self.args.password:
+            replace_pattern_in_file(
+                "shared/cfg/guest-os/Linux.cfg",
+                r'password = \S*',
+                r'password = %s' % self.args.password)
 
         if self.args.retain_vm:
             return
@@ -944,7 +980,7 @@ class LibvirtCI():
         sys.stdout.flush()
         status, res, err_msg = self.run_test(
             'unattended_install.import.import.default_install.aio_native',
-            restore_image=True, need_check=False)
+            restore_image=restore_image, need_check=False)
         if not 'PASS' in status:
             raise Exception('   ERROR: Failed to install guest \n %s' %
                             res.stderr)
