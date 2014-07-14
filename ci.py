@@ -1053,11 +1053,15 @@ class LibvirtCI():
                              '/%s/pull/%s.patch' % (repo_name, pull_no))
                 patch_file = "/tmp/%s.patch" % pull_no
                 urllib.urlretrieve(patch_url, patch_file)
+                with open(patch_file, 'r') as pf:
+                    if not pf.read().strip():
+                        print 'WARING: empty content for PR #%s' % pull_no
                 try:
+                    print 'Patching %s PR #%s' % (repo_name, pull_no)
                     cmd = 'git am -3 %s' % patch_file
                     res = utils.run(cmd, ignore_status=True)
-                except:
                     print res
+                except:
                     raise Exception('Failed applying patch %s' % pull_no)
                 finally:
                     os.remove(patch_file)
