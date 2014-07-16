@@ -1162,15 +1162,15 @@ class LibvirtCI():
         Run continuous integrate for virt-test test cases.
         """
         self.parse_args()
-        self.prepare_repos()
-        if self.args.pre_cmd:
-            print 'Running command line "%s" before test.' % self.args.pre_cmd
-            res = utils.run(self.args.pre_cmd, ignore_status=True)
-            print 'Result:'
-            for line in str(res).splitlines():
-                print line
         report = Report(self.args.fail_diff)
         try:
+            self.prepare_repos()
+            if self.args.pre_cmd:
+                print 'Running command line "%s" before test.' % self.args.pre_cmd
+                res = utils.run(self.args.pre_cmd, ignore_status=True)
+                print 'Result:'
+                for line in str(res).splitlines():
+                    print line
             # service must put at first, or the result will be wrong.
             self.states = [ServiceState(), FileState(), DirState(),
                            DomainState(), NetworkState(), PoolState(),
