@@ -1097,13 +1097,14 @@ class LibvirtCI():
             dep = set()
             for pr_number in pr_numbers:
                 # Monitor PR's first comment
-                issue_url = 'https://api.github.com/repos/autotest/tp-libvirt/issues/241' % pr_number
+                issues_url = 'https://api.github.com/repos/autotest/tp-libvirt/issues/'
+                issue_url = issues_url + pr_number
                 issue_u = urllib2.urlopen(issue_url + oauth)
                 issue = json.load(issue_u)
                 for line in issue['body'].splitlines():
                     dep |= search_dep(line)
 
-                comments_url = ('https://api.github.com/repos/autotest/tp-libvirt/issues/%s/comments' % pr_number)
+                comments_url = issues_url + '%s/comments' % pr_number
                 comments_u = urllib2.urlopen(comments_url + oauth)
                 comments = json.load(comments_u)
                 for comment in comments:
