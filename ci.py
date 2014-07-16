@@ -780,7 +780,7 @@ class LibvirtCI():
                           action='store', default='',
                           help='Merge specified tp-libvirt pull requests')
         parser.add_option('--with-dependence', dest='with_dependence',
-                          action='store', default='',
+                          action='store_true',
                           help='Merge virt-test pull requests depend on')
         parser.add_option('--no-restore-pull', dest='no_restore_pull',
                           action='store_true', help='Do not restore repo '
