@@ -4,6 +4,8 @@ import os
 import sys
 import time
 import urllib
+import urllib2
+import json
 import shutil
 import string
 import difflib
@@ -777,6 +779,9 @@ class LibvirtCI():
         parser.add_option('--pull-libvirt', dest='libvirt_pull',
                           action='store', default='',
                           help='Merge specified tp-libvirt pull requests')
+        parser.add_option('--with-dependence', dest='with_dependence',
+                          action='store', default='',
+                          help='Merge virt-test pull requests depend on')
         parser.add_option('--no-restore-pull', dest='no_restore_pull',
                           action='store_true', help='Do not restore repo '
                           'to branch master after test.')
@@ -1059,9 +1064,9 @@ class LibvirtCI():
                 try:
                     print 'Patching %s PR #%s' % (repo_name, pull_no)
                     cmd = 'git am -3 %s' % patch_file
-                    res = utils.run(cmd, ignore_status=True)
-                    print res
-                except:
+                    res = utils.run(cmd)
+                except error.CmdError, e:
+                    print e
                     raise Exception('Failed applying patch %s' % pull_no)
                 finally:
                     os.remove(patch_file)
@@ -1076,22 +1081,53 @@ class LibvirtCI():
 
             return res.stdout.strip().splitlines()
 
+        def search_dep(line):
+            pattern1 = r'autotest/virt-test#([0-9]*)'
+            pattern2 = (r'https?://github.com/autotest/virt-test/(?:pull|issues)/([0-9]*)')
+            res = set()
+            match = re.findall(pattern1, line)
+            res |= set(match)
+            match = re.findall(pattern2, line)
+            res |= set(match)
+            return res
+
+        def libvirt_pr_dep(pr_numbers):
+            oauth = ('?client_id=b6578298435c3eaa1e3d&client_secret'
+                     '=59a1c828c6002ed4e8a9205486cf3fa86467a609')
+            dep = set()
+            for pr_number in pr_numbers:
+                comments_url = ('https://api.github.com/repos/autotest/tp-libvirt/issues/%s/comments' % pr_number)
+                comments_u = urllib2.urlopen(comments_url + oauth)
+                comments = json.load(comments_u)
+                for comment in comments:
+                    for line in comment['body'].splitlines():
+                        dep |= search_dep(line)
+            return dep
+
         self.virt_branch_name, self.libvirt_branch_name = None, None
 
+        libvirt_pulls = set()
+        virt_test_pulls = set()
+
+        if self.args.libvirt_pull:
+            libvirt_pulls = set(self.args.libvirt_pull.split(','))
+
+        if self.args.with_dependence:
+            virt_test_pulls = libvirt_pr_dep(libvirt_pulls)
+
         if self.args.virt_test_pull:
+            virt_test_pulls |= self.args.virt_test_pull.split(',')
+
+        if virt_test_pulls:
             os.chdir(data_dir.get_root_dir())
-            self.virt_branch_name = merge_pulls(
-                "virt-test",
-                self.args.virt_test_pull.split(','))
+            self.virt_branch_name = merge_pulls("virt-test", virt_test_pulls)
             if self.args.only_change:
                 self.virt_file_changed = file_changed("virt-test")
 
-        if self.args.libvirt_pull:
+        if libvirt_pulls:
             os.chdir(data_dir.get_test_provider_dir(
                 'io-github-autotest-libvirt'))
-            self.libvirt_branch_name = merge_pulls(
-                "tp-libvirt",
-                self.args.libvirt_pull.split(','))
+            self.libvirt_branch_name = merge_pulls("tp-libvirt", libvirt_pulls)
             if self.args.only_change:
                 self.libvirt_file_changed = file_changed("tp-libvirt")
 
