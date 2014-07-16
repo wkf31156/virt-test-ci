@@ -1124,7 +1124,7 @@ class LibvirtCI():
             virt_test_pulls = libvirt_pr_dep(libvirt_pulls)
 
         if self.args.virt_test_pull:
-            virt_test_pulls |= self.args.virt_test_pull.split(',')
+            virt_test_pulls |= set(self.args.virt_test_pull.split(','))
 
         if virt_test_pulls:
             os.chdir(data_dir.get_root_dir())
