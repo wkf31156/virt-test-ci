@@ -1096,21 +1096,33 @@ class LibvirtCI():
                      '=59a1c828c6002ed4e8a9205486cf3fa86467a609')
             dep = set()
             for pr_number in pr_numbers:
-                # Monitor PR's first comment
+                # Find PR's first comment for dependencies.
                 issues_url = 'https://api.github.com/repos/autotest/tp-libvirt/issues/'
-                issue_url = issues_url + pr_number
-                issue_u = urllib2.urlopen(issue_url + oauth)
+                issue_url = issues_url + pr_number + oauth
+                issue_u = urllib2.urlopen(issue_url)
                 issue = json.load(issue_u)
                 for line in issue['body'].splitlines():
                     dep |= search_dep(line)
 
-                comments_url = issues_url + '%s/comments' % pr_number
-                comments_u = urllib2.urlopen(comments_url + oauth)
+                # Find PR's other comments for dependencies.
+                comments_url = issues_url + '%s/comments' % pr_number + oauth
+                comments_u = urllib2.urlopen(comments_url)
                 comments = json.load(comments_u)
                 for comment in comments:
                     for line in comment['body'].splitlines():
                         dep |= search_dep(line)
-            return dep
+
+            # Remove closed dependences:
+            pruned_dep = []
+            for pr_number in dep:
+                issues_url = 'https://api.github.com/repos/autotest/virt-test/issues/'
+                issue_url = issues_url + pr_number + oauth
+                issue_u = urllib2.urlopen(issue_url)
+                issue = json.load(issue_u)
+                if issue['state'] == 'open':
+                    pruned_dep.append(pr_number)
+
+            return pruned_dep
 
         self.virt_branch_name, self.libvirt_branch_name = None, None
 
