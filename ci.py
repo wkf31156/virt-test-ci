@@ -1113,14 +1113,14 @@ class LibvirtCI():
                         dep |= search_dep(line)
 
             # Remove closed dependences:
-            pruned_dep = []
+            pruned_dep = set()
             for pr_number in dep:
                 issues_url = 'https://api.github.com/repos/autotest/virt-test/issues/'
                 issue_url = issues_url + pr_number + oauth
                 issue_u = urllib2.urlopen(issue_url)
                 issue = json.load(issue_u)
                 if issue['state'] == 'open':
-                    pruned_dep.append(pr_number)
+                    pruned_dep.add(pr_number)
 
             return pruned_dep
 
