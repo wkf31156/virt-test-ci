@@ -953,9 +953,10 @@ class LibvirtCI():
 
         if self.args.img_url:
             def progress_callback(count, block_size, total_size):
-                percent = count * block_size * 100 / total_size
-                sys.stdout.write("\rDownloaded %2.2f%%" % percent)
-                sys.stdout.flush()
+                #percent = count * block_size * 100 / total_size
+                #sys.stdout.write("\rDownloaded %2.2f%%" % percent)
+                #sys.stdout.flush()
+                pass
             print 'Downloading image from %s.' % self.args.img_url
             img_dir = os.path.join(
                 data_dir.get_data_dir(), 'images/jeos-19-64.qcow2'),
