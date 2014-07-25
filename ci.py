@@ -756,7 +756,7 @@ class LibvirtCI():
                           default='',
                           help='Check specified changes.')
         parser.add_option('--connect-uri', dest='connect_uri', action='store',
-                          help='Run tests using specified uri.')
+                          default='', help='Run tests using specified uri.')
         parser.add_option('--smoke', dest='smoke', action='store_true',
                           help='Run one test for each script.')
         parser.add_option('--report', dest='report', action='store',
