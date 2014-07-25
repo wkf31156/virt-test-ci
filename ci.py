@@ -987,13 +987,20 @@ class LibvirtCI():
 
         print 'Installing VM',
         sys.stdout.flush()
-        status, res, err_msg = self.run_test(
-            'unattended_install.import.import.default_install.aio_native',
-            restore_image=restore_image, need_check=False)
-        if not 'PASS' in status:
-            raise Exception('   ERROR: Failed to install guest \n %s' %
-                            res.stderr)
-        virsh.destroy('virt-tests-vm1')
+        if 'lxc' in self.args.connect_uri:
+            cmd = 'virt-install --connect=lxc:/// --name virt-tests-vm1 --ram 500 --noautoconsole'
+            try:
+                utils.run(cmd)
+            except error.CmdError, e:
+                raise Exception('   ERROR: Failed to install guest \n %s' % e)
+        else:
+            status, res, err_msg = self.run_test(
+                'unattended_install.import.import.default_install.aio_native',
+                restore_image=restore_image, need_check=False)
+            if not 'PASS' in status:
+                raise Exception('   ERROR: Failed to install guest \n %s' %
+                                res.stderr)
+            virsh.destroy('virt-tests-vm1')
 
     def run_test(self, test, restore_image=False, need_check=True):
         """
@@ -1202,6 +1209,10 @@ class LibvirtCI():
                            DomainState(), NetworkState(), PoolState(),
                            SecretState(), MountState()]
             tests = self.prepare_tests()
+            if not tests:
+                print "No test to run!"
+                return
+
             self.prepare_env()
             for state in self.states:
                 state.backup()
