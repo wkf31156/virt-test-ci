@@ -755,6 +755,8 @@ class LibvirtCI():
         parser.add_option('--check', dest='check', action='store',
                           default='',
                           help='Check specified changes.')
+        parser.add_option('--connect-uri', dest='connect_uri', action='store',
+                          help='Run tests using specified uri.')
         parser.add_option('--smoke', dest='smoke', action='store_true',
                           help='Run one test for each script.')
         parser.add_option('--report', dest='report', action='store',
@@ -828,6 +830,8 @@ class LibvirtCI():
             Get all libvirt tests.
             """
             cmd = './run -t libvirt --list-tests'
+            if self.args.connect_uri:
+                cmd += ' --connect-uri %s' % self.args.connect_uri
             if self.nos:
                 cmd += ' --no %s' % ','.join(self.nos)
             res = utils.run(cmd)
@@ -999,6 +1003,8 @@ class LibvirtCI():
         down_str = '' if restore_image else '--no-downloads'
         cmd = './run -v%st libvirt --keep-image-between-tests %s --tests %s' % (
             img_str, down_str, test)
+        if self.args.connect_uri:
+            cmd += ' --connect-uri %s' % self.args.connect_uri
         status = 'INVALID'
         try:
             res = utils.run(cmd, timeout=1200, ignore_status=True)
