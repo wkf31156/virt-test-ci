@@ -17,6 +17,7 @@ from virttest import common
 from virttest import utils_libvirtd, utils_selinux
 from virttest import data_dir
 from virttest import virsh
+from virttest.staging import service
 from autotest.client import utils
 from virttest.utils_misc import mount, umount
 from autotest.client.tools import JUnit_api as api
@@ -949,6 +950,9 @@ class LibvirtCI():
                 if match:
                     line = prog.sub(replace_exp, line)
                 sys.stdout.write(line)
+
+        utils_libvirtd.Libvirtd().restart()
+        service.Factory.create_service("nfs").restart()
 
         print 'Running bootstrap'
         sys.stdout.flush()
