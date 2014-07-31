@@ -1214,6 +1214,7 @@ class LibvirtCI():
                            SecretState(), MountState()]
             tests = self.prepare_tests()
             if not tests:
+                report.update("No test", "No test", "", "", "", 0)
                 print "No test to run!"
                 return
 
