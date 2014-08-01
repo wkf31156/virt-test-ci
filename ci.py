@@ -758,6 +758,8 @@ class LibvirtCI():
                           help='Check specified changes.')
         parser.add_option('--connect-uri', dest='connect_uri', action='store',
                           default='', help='Run tests using specified uri.')
+        parser.add_option('--additional-vms', dest='add_vms', action='store',
+                          default='', help='Additional VMs for testing')
         parser.add_option('--smoke', dest='smoke', action='store_true',
                           help='Run one test for each script.')
         parser.add_option('--report', dest='report', action='store',
@@ -977,17 +979,26 @@ class LibvirtCI():
                 "shared/cfg/guest-os/Linux.cfg",
                 r'password = \S*',
                 r'password = %s' % self.args.password)
+        if self.args.add_vms:
+            vms_string = "virt-tests-vm1 " + " ".join(self.args.add_vms.split(','))
+            replace_pattern_in_file(
+                "shared/cfg/base.cfg",
+                r'^\s*vms = .*\n',
+                r'vms = %s\n' % vms_string)
+        import pdb
+        pdb.set_trace()
 
         if self.args.retain_vm:
             return
 
-        print 'Removing VM',  # TODO: use virt-test api remove VM
+        print 'Removing VM\n',  # TODO: use virt-test api remove VM
         sys.stdout.flush()
-        status, res, err_msg = self.run_test(
-            'remove_guest.without_disk', need_check=False)
-        if not 'PASS' in status:
-            virsh.undefine('virt-tests-vm1', '--snapshots-metadata')
-            print '   WARNING: Failed to remove guest'
+        virsh.destroy('virt-tests-vm1', ignore_status=True)
+        virsh.undefine('virt-tests-vm1', '--snapshots-metadata', ignore_status=True)
+        if self.args.add_vms:
+            for vm in self.args.add_vms.split(','):
+                virsh.destroy(vm, ignore_status=True)
+                virsh.undefine(vm, '--snapshots-metadata', ignore_status=True)
 
         print 'Installing VM',
         sys.stdout.flush()
@@ -1005,6 +1016,15 @@ class LibvirtCI():
                 raise Exception('   ERROR: Failed to install guest \n %s' %
                                 res.stderr)
             virsh.destroy('virt-tests-vm1')
+        if self.args.add_vms:
+            for vm in self.args.add_vms.split(','):
+                cmd = 'virt-clone '
+                if self.args.connect_uri:
+                    cmd += '--connect=%s ' % self.args.connect_uri
+                cmd += '--original=virt-tests-vm1 '
+                cmd += '--name=%s ' % vm
+                cmd += '--auto-clone'
+                utils.run(cmd)
 
     def run_test(self, test, restore_image=False, need_check=True):
         """
