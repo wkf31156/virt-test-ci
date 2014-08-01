@@ -985,8 +985,6 @@ class LibvirtCI():
                 "shared/cfg/base.cfg",
                 r'^\s*vms = .*\n',
                 r'vms = %s\n' % vms_string)
-        import pdb
-        pdb.set_trace()
 
         if self.args.retain_vm:
             return
