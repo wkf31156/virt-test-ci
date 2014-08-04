@@ -771,9 +771,15 @@ class LibvirtCI():
         parser.add_option('--black', dest='blacklist', action='store',
                           default='', help='Blacklist file contains '
                           'specified test cases to be excluded.')
+        parser.add_option('--config', dest='config', action='store',
+                          default='', help='Specify a custom Cartesian cfg '
+                          'file')
         parser.add_option('--img-url', dest='img_url', action='store',
                           default='', help='Specify a URL to a custom image '
                           'file')
+        parser.add_option('--os-variant', dest='os_variant', action='store',
+                          default='', help='Specify the --os-variant option '
+                          'when doing virt-install.')
         parser.add_option('--password', dest='password', action='store',
                           default='', help='Specify a password for logging '
                           'into guest')
@@ -837,6 +843,8 @@ class LibvirtCI():
                 cmd += ' --connect-uri %s' % self.args.connect_uri
             if self.nos:
                 cmd += ' --no %s' % ','.join(self.nos)
+            if self.args.config:
+                cmd += ' -c %s' % self.args.config
             res = utils.run(cmd)
             out, err, exitcode = res.stdout, res.stderr, res.exit_status
             tests = []
@@ -979,6 +987,13 @@ class LibvirtCI():
                 "shared/cfg/guest-os/Linux.cfg",
                 r'password = \S*',
                 r'password = %s' % self.args.password)
+
+        if self.args.os_variant:
+            replace_pattern_in_file(
+                    "shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg",
+                    r'os_variant = \S*',
+                    r'os_variant = %s' % self.args.os_variant)
+
         if self.args.add_vms:
             vms_string = "virt-tests-vm1 " + " ".join(self.args.add_vms.split(','))
             replace_pattern_in_file(
