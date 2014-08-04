@@ -1006,8 +1006,17 @@ class LibvirtCI():
 
         print 'Removing VM\n',  # TODO: use virt-test api remove VM
         sys.stdout.flush()
-        virsh.destroy('virt-tests-vm1', ignore_status=True)
-        virsh.undefine('virt-tests-vm1', '--snapshots-metadata', ignore_status=True)
+        if self.args.connect_uri:
+            virsh.destroy('virt-tests-vm1',
+                          ignore_status=True,
+                          uri = self.args.connect_uri)
+            virsh.undefine('virt-tests-vm1',
+                           '--snapshots-metadata',
+                           ignore_status=True,
+                           uri = self.args.connect_uri)
+        else:
+            virsh.destroy('virt-tests-vm1', ignore_status=True)
+            virsh.undefine('virt-tests-vm1', '--snapshots-metadata', ignore_status=True)
         if self.args.add_vms:
             for vm in self.args.add_vms.split(','):
                 virsh.destroy(vm, ignore_status=True)
