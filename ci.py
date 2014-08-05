@@ -935,7 +935,7 @@ class LibvirtCI():
             name, test_name = names
         else:
             name = names[0]
-            test_name = ""
+            test_name = name
         if package_name:
             class_name = '.'.join((package_name, name))
         else:
@@ -1270,7 +1270,7 @@ class LibvirtCI():
                            SecretState(), MountState()]
             tests = self.prepare_tests()
             if not tests:
-                report.update("No test", "no_test.no_test", "", "", "", 0)
+                report.update("", "no_test.no_test", "", "", "", 0)
                 print "No test to run!"
                 return
 
@@ -1287,8 +1287,6 @@ class LibvirtCI():
                 status, res, err_msg = self.run_test(test)
 
                 class_name, test_name = self.split_name(test)
-                if not '.' in class_name:
-                    class_name = 'unsorted.' + class_name
 
                 report.update(test_name, class_name, status,
                               res.stderr, err_msg, res.duration)
