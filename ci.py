@@ -848,18 +848,18 @@ class LibvirtCI():
             res = utils.run(cmd)
             out, err, exitcode = res.stdout, res.stderr, res.exit_status
             tests = []
-            module_names = set()
+            class_names = set()
             for line in out.splitlines():
                 if line:
                     if line[0].isdigit():
                         test = re.sub(r'^[0-9]+ (.*) \(requires root\)$',
                                       r'\1', line)
                         if self.args.smoke:
-                            name = self.get_module_name(test)
-                            if name in module_names:
+                            class_name, _ = self.split_name(test)
+                            if class_name in class_names:
                                 continue
                             else:
-                                module_names.add(name)
+                                class_names.add(class_name)
                         tests.append(test)
             return tests
 
@@ -918,19 +918,31 @@ class LibvirtCI():
                 fp.write(test + '\n')
         return tests
 
-    def get_module_name(self, name):
+    def split_name(self, name):
         """
         Try to return the module name of a test.
         """
-        package_name = "unsorted"
-        if name.startswith('type_specific'):
-            name = name.split('.', 1)[1]
-        if name.startswith('io-github-autotest-libvirt'):
-            name = name.split('.', 1)[1]
-        if name.startswith('virsh'):
+        if name.startswith('type_specific.io-github-autotest-libvirt'):
+            name = name.split('.', 2)[2]
+
+        if name.split('.')[0] in ['virsh']:
             package_name, name = name.split('.', 1)
-        name = name.split('.', 1)[0]
-        return '.'.join((package_name, name))
+        else:
+            package_name = ""
+
+        names = name.split('.', 1)
+        if len(names) == 2:
+            name, test_name = names
+        else:
+            name = names[0]
+            test_name = ""
+        if package_name:
+            class_name = '.'.join((package_name, name))
+        else:
+            class_name = name
+
+        return class_name, test_name
+
 
     def bootstrap(self):
         from virttest import bootstrap
@@ -1274,8 +1286,11 @@ class LibvirtCI():
 
                 status, res, err_msg = self.run_test(test)
 
-                module_name = self.get_module_name(test)
-                report.update(test, module_name, status,
+                class_name, test_name = self.split_name(test)
+                if not '.' in class_name:
+                    class_name = 'unsorted.' + class_name
+
+                report.update(test_name, class_name, status,
                               res.stderr, err_msg, res.duration)
                 report.save(self.args.report)
             if self.args.post_cmd:
