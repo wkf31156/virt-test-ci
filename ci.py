@@ -922,13 +922,15 @@ class LibvirtCI():
         """
         Try to return the module name of a test.
         """
+        package_name = "unsorted"
         if name.startswith('type_specific'):
             name = name.split('.', 1)[1]
         if name.startswith('io-github-autotest-libvirt'):
             name = name.split('.', 1)[1]
         if name.startswith('virsh'):
-            name = name.split('.', 1)[1]
-        return name.split('.', 1)[0]
+            package_name, name = name.split('.', 1)
+        name = name.split('.', 1)[0]
+        return '.'.join((package_name, name))
 
     def bootstrap(self):
         from virttest import bootstrap
@@ -1256,7 +1258,7 @@ class LibvirtCI():
                            SecretState(), MountState()]
             tests = self.prepare_tests()
             if not tests:
-                report.update("No test", "No test", "", "", "", 0)
+                report.update("No test", "no_test.no_test", "", "", "", 0)
                 print "No test to run!"
                 return
 
