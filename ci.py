@@ -762,6 +762,8 @@ class LibvirtCI():
                           default='', help='Additional VMs for testing')
         parser.add_option('--smoke', dest='smoke', action='store_true',
                           help='Run one test for each script.')
+        parser.add_option('--slice', dest='slice', action='store',
+                          default='', help='Specify a URL to slice tests.')
         parser.add_option('--report', dest='report', action='store',
                           default='xunit_result.xml',
                           help='Exclude specified tests.')
@@ -886,10 +888,27 @@ class LibvirtCI():
                         pass
             return onlys
 
-        self.nos = set(['io-github-autotest-qemu'])
-        self.onlys = None
         if self.args.only:
             self.onlys = set(self.args.only.split(','))
+
+        self.nos = set(['io-github-autotest-qemu'])
+        self.onlys = None
+        if self.args.slice:
+            slices = {}
+            slice_url, slice_opt = self.args.slice.split(',')
+            config = urllib2.urlopen(slice_url)
+            for line in config:
+                key, val = line.split()
+                slices[key] = val
+            if slice_opt in slices:
+                if self.onlys is None:
+                    self.onlys = set(slices[slice_opt].split(','))
+                else:
+                    self.onlys |= set(slices[slice_opt].split(','))
+            elif slice_opt == 'other':
+                for key in slices:
+                    self.nos |= set(slices[key].split(','))
+
         if self.args.no:
             self.nos |= set(self.args.no.split(','))
         if self.args.only_change:
