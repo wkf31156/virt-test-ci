@@ -888,11 +888,12 @@ class LibvirtCI():
                         pass
             return onlys
 
+        self.nos = set(['io-github-autotest-qemu'])
+        self.onlys = None
+
         if self.args.only:
             self.onlys = set(self.args.only.split(','))
 
-        self.nos = set(['io-github-autotest-qemu'])
-        self.onlys = None
         if self.args.slice:
             slices = {}
             slice_url, slice_opt = self.args.slice.split(',')
