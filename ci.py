@@ -997,12 +997,6 @@ class LibvirtCI():
 
         utils_libvirtd.Libvirtd().restart()
         service.Factory.create_service("nfs").restart()
-
-        print 'Running bootstrap'
-        sys.stdout.flush()
-        self.bootstrap()
-        restore_image = True
-
         if self.args.img_url:
             def progress_callback(count, block_size, total_size):
                 #percent = count * block_size * 100 / total_size
@@ -1010,11 +1004,16 @@ class LibvirtCI():
                 #sys.stdout.flush()
                 pass
             print 'Downloading image from %s.' % self.args.img_url
+            sys.stdout.flush()
             img_dir = os.path.join(
                 data_dir.get_data_dir(), 'images/jeos-19-64.qcow2'),
             urllib.urlretrieve(self.args.img_url, img_dir[0], progress_callback)
             restore_image = False
-            print '\nDownload completed.'
+
+        print 'Running bootstrap'
+        sys.stdout.flush()
+        self.bootstrap()
+        restore_image = True
 
         if self.args.password:
             replace_pattern_in_file(
@@ -1285,7 +1284,7 @@ class LibvirtCI():
                 for line in str(res).splitlines():
                     print line
             # service must put at first, or the result will be wrong.
-            self.states = [ServiceState(), FileState(), DirState(),
+            self.states = [FileState(), ServiceState(), DirState(),
                            DomainState(), NetworkState(), PoolState(),
                            SecretState(), MountState()]
             tests = self.prepare_tests()
@@ -1326,7 +1325,7 @@ class LibvirtCI():
 
 
 def state_test():
-    states = [ServiceState(), FileState(), DirState(), DomainState(),
+    states = [FileState(), ServiceState(), DirState(), DomainState(),
               NetworkState(), PoolState(), SecretState(), MountState()]
     for state in states:
         state.backup()
