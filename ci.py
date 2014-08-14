@@ -997,6 +997,7 @@ class LibvirtCI():
 
         utils_libvirtd.Libvirtd().restart()
         service.Factory.create_service("nfs").restart()
+        restore_image = True
         if self.args.img_url:
             def progress_callback(count, block_size, total_size):
                 #percent = count * block_size * 100 / total_size
@@ -1013,7 +1014,6 @@ class LibvirtCI():
         print 'Running bootstrap'
         sys.stdout.flush()
         self.bootstrap()
-        restore_image = True
 
         if self.args.password:
             replace_pattern_in_file(
