@@ -144,7 +144,7 @@ class Report():
             s1 = s1.replace('"', "&quot;")
             return s1
 
-        if not ts_name in self.ts_dict:
+        if ts_name not in self.ts_dict:
             self.ts_dict[ts_name] = self.testsuite(name=ts_name)
             ts = self.ts_dict[ts_name]
             ts.failures = 0
@@ -963,7 +963,6 @@ class LibvirtCI():
 
         return class_name, test_name
 
-
     def bootstrap(self):
         from virttest import bootstrap
 
@@ -997,6 +996,11 @@ class LibvirtCI():
 
         utils_libvirtd.Libvirtd().restart()
         service.Factory.create_service("nfs").restart()
+
+        print 'Running bootstrap'
+        sys.stdout.flush()
+        self.bootstrap()
+
         restore_image = True
         if self.args.img_url:
             def progress_callback(count, block_size, total_size):
@@ -1007,13 +1011,9 @@ class LibvirtCI():
             print 'Downloading image from %s.' % self.args.img_url
             sys.stdout.flush()
             img_dir = os.path.join(
-                data_dir.get_data_dir(), 'images/jeos-19-64.qcow2'),
-            urllib.urlretrieve(self.args.img_url, img_dir[0], progress_callback)
+                os.path.realpath(data_dir.get_data_dir()), 'images/jeos-19-64.qcow2')
+            urllib.urlretrieve(self.args.img_url, img_dir, progress_callback)
             restore_image = False
-
-        print 'Running bootstrap'
-        sys.stdout.flush()
-        self.bootstrap()
 
         if self.args.password:
             replace_pattern_in_file(
@@ -1023,9 +1023,9 @@ class LibvirtCI():
 
         if self.args.os_variant:
             replace_pattern_in_file(
-                    "shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg",
-                    r'os_variant = \S*',
-                    r'os_variant = %s' % self.args.os_variant)
+                "shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg",
+                r'os_variant = \S*',
+                r'os_variant = %s' % self.args.os_variant)
 
         if self.args.add_vms:
             vms_string = "virt-tests-vm1 " + " ".join(self.args.add_vms.split(','))
@@ -1042,11 +1042,11 @@ class LibvirtCI():
         if self.args.connect_uri:
             virsh.destroy('virt-tests-vm1',
                           ignore_status=True,
-                          uri = self.args.connect_uri)
+                          uri=self.args.connect_uri)
             virsh.undefine('virt-tests-vm1',
                            '--snapshots-metadata',
                            ignore_status=True,
-                           uri = self.args.connect_uri)
+                           uri=self.args.connect_uri)
         else:
             virsh.destroy('virt-tests-vm1', ignore_status=True)
             virsh.undefine('virt-tests-vm1', '--snapshots-metadata', ignore_status=True)
@@ -1067,7 +1067,7 @@ class LibvirtCI():
             status, res, err_msg = self.run_test(
                 'unattended_install.import.import.default_install.aio_native',
                 restore_image=restore_image, need_check=False)
-            if not 'PASS' in status:
+            if 'PASS' not in status:
                 raise Exception('   ERROR: Failed to install guest \n %s' %
                                 res.stderr)
             virsh.destroy('virt-tests-vm1')
@@ -1344,7 +1344,6 @@ def state_test():
 
 
 if __name__ == '__main__':
-#    state_test()
     ci = LibvirtCI()
     ci.run()
 
