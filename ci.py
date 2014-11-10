@@ -460,10 +460,9 @@ class NetworkState(State):
     def get_info(self, name):
         infos = {}
         for line in virsh.net_info(name).stdout.strip().splitlines():
-            if line.startswith('Name') or line.startswith('UUID'):
-                key, value = line.split()
-            else:
-                key, value = line.split(':', 1)
+            key, value = line.split()
+            if key.endswith(':'):
+                key = key[:-1]
             infos[key.lower()] = value.strip()
         infos['inactive xml'] = virsh.net_dumpxml(
             name, '--inactive').stdout.splitlines()
