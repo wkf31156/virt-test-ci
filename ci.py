@@ -845,6 +845,8 @@ class LibvirtCI():
                 cmd += ' --connect-uri %s' % self.args.connect_uri
             if self.nos:
                 cmd += ' --no %s' % ','.join(self.nos)
+            if self.onlys:
+                cmd += ' --tests %s' % ','.join(self.onlys)
             if self.args.config:
                 cmd += ' -c %s' % self.args.config
             res = utils.run(cmd)
@@ -922,12 +924,6 @@ class LibvirtCI():
             tests = read_tests_from_file(whitelist)
         else:
             tests = get_all_tests()
-
-        if self.onlys is not None:
-            filtered_tests = []
-            for item in self.onlys:
-                filtered_tests += [t for t in tests if item in t]
-            tests = filtered_tests
 
         if self.args.blacklist:
             black_tests = read_tests_from_file(blacklist)
