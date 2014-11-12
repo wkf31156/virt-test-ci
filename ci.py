@@ -1097,6 +1097,9 @@ class LibvirtCI():
             res = e.result_obj
             status = 'TIMEOUT'
             res.duration = 1200
+        except Exception, e:
+            print "Exception when parsing stdout.\n%s" % res
+            raise e
 
         os.chdir(data_dir.get_root_dir())  # Check PWD
 
