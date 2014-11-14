@@ -11,13 +11,15 @@ index baede92..694e5ac 100644
      shell_prompt = "^\[.*\][\#\$]\s*$"
      no unattended_install..floppy_ks
 diff --git a/virttest/virsh.py b/virttest/virsh.py
-index 476d93a..15e5999 100644
+index 3e59f38..df43dc2 100644
 --- a/virttest/virsh.py
 +++ b/virttest/virsh.py
-@@ -656,6 +656,7 @@ def command(cmd, **dargs):
+@@ -612,7 +612,7 @@ def command(cmd, **dargs):
  
-         # Raise exception if ignore_status is False
-         ret = utils.run(cmd, verbose=debug, ignore_status=ignore_status)
-+        logging.debug(ret)
-         # Mark return as not coming from persistent virsh session
-         ret.from_session_id = None
+     virsh_exec = dargs.get('virsh_exec', VIRSH_EXEC)
+     uri = dargs.get('uri', None)
+-    debug = dargs.get('debug', False)
++    debug = dargs.get('debug', True)
+     # Caller deals with errors
+     ignore_status = dargs.get('ignore_status', True)
+     session_id = dargs.get('session_id', None)
