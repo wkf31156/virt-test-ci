@@ -897,19 +897,22 @@ class LibvirtCI():
 
         if self.args.slice:
             slices = {}
-            slice_url, slice_opt = self.args.slice.split(',')
+            slice_opts = self.args.slice.split(',')
+            slice_url = slice_opts[0]
+            slice_opts = slice_opts[1:]
             config = urllib2.urlopen(slice_url)
             for line in config:
                 key, val = line.split()
                 slices[key] = val
-            if slice_opt in slices:
-                if self.onlys is None:
-                    self.onlys = set(slices[slice_opt].split(','))
-                else:
-                    self.onlys |= set(slices[slice_opt].split(','))
-            elif slice_opt == 'other':
-                for key in slices:
-                    self.nos |= set(slices[key].split(','))
+            for slice_opt in slice_opts:
+                if slice_opt in slices:
+                    if self.onlys is None:
+                        self.onlys = set(slices[slice_opt].split(','))
+                    else:
+                        self.onlys |= set(slices[slice_opt].split(','))
+                elif slice_opt == 'other':
+                    for key in slices:
+                        self.nos |= set(slices[key].split(','))
 
         if self.args.no:
             self.nos |= set(self.args.no.split(','))
