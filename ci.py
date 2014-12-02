@@ -752,9 +752,10 @@ class LibvirtCI():
                           help='Exclude specified tests.')
         parser.add_option('--only', dest='only', action='store', default='',
                           help='Run only for specified tests.')
-        parser.add_option('--check', dest='check', action='store',
-                          default='',
-                          help='Check specified changes.')
+        parser.add_option('--no-check', dest='no_check', action='store_true',
+                          help='Disable checking state changes after each test.')
+        parser.add_option('--no-recover', dest='no_recover', action='store_true',
+                          help='Disable recover state changes after each test.')
         parser.add_option('--connect-uri', dest='connect_uri', action='store',
                           default='', help='Run tests using specified uri.')
         parser.add_option('--additional-vms', dest='add_vms', action='store',
@@ -1064,7 +1065,7 @@ class LibvirtCI():
         else:
             status, res, err_msg = self.run_test(
                 'unattended_install.import.import.default_install.aio_native',
-                restore_image=restore_image, need_check=False)
+                restore_image=restore_image, check=False, recover=False)
             if 'PASS' not in status:
                 raise Exception('   ERROR: Failed to install guest \n %s' %
                                 res.stderr)
@@ -1079,7 +1080,7 @@ class LibvirtCI():
                 cmd += '--auto-clone'
                 utils.run(cmd)
 
-    def run_test(self, test, restore_image=False, need_check=True):
+    def run_test(self, test, restore_image=False, check=True, recover=True):
         """
         Run a specific test.
         """
@@ -1108,10 +1109,10 @@ class LibvirtCI():
 
         err_msg = []
 
-        if need_check:
+        if check:
             diff = False
             for state in self.states:
-                diffmsg = state.check(recover=True)
+                diffmsg = state.check(recover=recover)
                 if diffmsg:
                     if not diff:
                         diff = True
@@ -1304,7 +1305,10 @@ class LibvirtCI():
                                           len(tests), short_name),
                 sys.stdout.flush()
 
-                status, res, err_msg = self.run_test(test)
+                status, res, err_msg = self.run_test(
+                    test,
+                    check=not self.args.no_check,
+                    recover=not self.args.no_recover)
 
                 class_name, test_name = self.split_name(test)
 
