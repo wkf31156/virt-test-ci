@@ -9,6 +9,7 @@ import json
 import shutil
 import string
 import difflib
+import logging
 import optparse
 import tempfile
 import fileinput
@@ -1148,22 +1149,23 @@ class LibvirtCI():
                 raise Exception('Failed to create branch %s' % branch_name)
 
             for pull_no in pull_nos:
-                patch_url = ('https://github.com/autotest'
-                             '/%s/pull/%s.patch' % (repo_name, pull_no))
-                patch_file = "/tmp/%s.patch" % pull_no
-                urllib.urlretrieve(patch_url, patch_file)
-                with open(patch_file, 'r') as pf:
-                    if not pf.read().strip():
-                        print 'WARING: empty content for PR #%s' % pull_no
-                try:
-                    print 'Patching %s PR #%s' % (repo_name, pull_no)
-                    cmd = 'git am -3 %s' % patch_file
-                    res = utils.run(cmd)
-                except error.CmdError, e:
-                    print e
-                    raise Exception('Failed applying patch %s' % pull_no)
-                finally:
-                    os.remove(patch_file)
+                if pr_open(repo_name, pull_no):
+                    patch_url = ('https://github.com/autotest'
+                                 '/%s/pull/%s.patch' % (repo_name, pull_no))
+                    patch_file = "/tmp/%s.patch" % pull_no
+                    urllib.urlretrieve(patch_url, patch_file)
+                    with open(patch_file, 'r') as pf:
+                        if not pf.read().strip():
+                            print 'WARING: empty content for PR #%s' % pull_no
+                    try:
+                        print 'Patching %s PR #%s' % (repo_name, pull_no)
+                        cmd = 'git am -3 %s' % patch_file
+                        res = utils.run(cmd)
+                    except error.CmdError, e:
+                        print e
+                        raise Exception('Failed applying patch %s.' % pull_no)
+                    finally:
+                        os.remove(patch_file)
             return branch_name
 
         def file_changed(repo_name):
@@ -1184,6 +1186,15 @@ class LibvirtCI():
             match = re.findall(pattern2, line)
             res |= set(match)
             return res
+
+        def pr_open(repo_name, pr_number):
+            oauth = ('?client_id=b6578298435c3eaa1e3d&client_secret'
+                     '=59a1c828c6002ed4e8a9205486cf3fa86467a609')
+            issues_url = 'https://api.github.com/repos/autotest/%s/issues/' % repo_name
+            issue_url = issues_url + pr_number + oauth
+            issue_u = urllib2.urlopen(issue_url)
+            issue = json.load(issue_u)
+            return issue['state'] == 'open'
 
         def libvirt_pr_dep(pr_numbers):
             oauth = ('?client_id=b6578298435c3eaa1e3d&client_secret'
@@ -1209,11 +1220,7 @@ class LibvirtCI():
             # Remove closed dependences:
             pruned_dep = set()
             for pr_number in dep:
-                issues_url = 'https://api.github.com/repos/autotest/virt-test/issues/'
-                issue_url = issues_url + pr_number + oauth
-                issue_u = urllib2.urlopen(issue_url)
-                issue = json.load(issue_u)
-                if issue['state'] == 'open':
+                if pr_open('virt-test', pr_number):
                     pruned_dep.add(pr_number)
 
             return pruned_dep
