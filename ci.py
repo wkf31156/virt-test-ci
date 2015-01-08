@@ -1043,7 +1043,7 @@ class LibvirtCI():
                           ignore_status=True,
                           uri=self.args.connect_uri)
             virsh.undefine('virt-tests-vm1',
-                           '--snapshots-metadata',
+                           '--snapshots-metadata --managed-save',
                            ignore_status=True,
                            uri=self.args.connect_uri)
         else:
