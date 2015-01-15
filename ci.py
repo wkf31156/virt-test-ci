@@ -1049,7 +1049,7 @@ class LibvirtCI():
                            uri=self.args.connect_uri)
         else:
             virsh.destroy('virt-tests-vm1', ignore_status=True)
-            virsh.undefine('virt-tests-vm1', '--snapshots-metadata', ignore_status=True)
+            virsh.undefine('virt-tests-vm1', '--snapshots-metadata --managed-save', ignore_status=True)
         if self.args.add_vms:
             for vm in self.args.add_vms.split(','):
                 virsh.destroy(vm, ignore_status=True)
