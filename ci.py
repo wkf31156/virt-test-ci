@@ -749,6 +749,8 @@ class LibvirtCI():
         parser = optparse.OptionParser(
             description='Continuouse integration of '
             'virt-test libvirt test provider.')
+        parser.add_option('--list', dest='list', action='store_true',
+                          help='List all the test names')
         parser.add_option('--no', dest='no', action='store', default='',
                           help='Exclude specified tests.')
         parser.add_option('--only', dest='only', action='store', default='',
@@ -1049,7 +1051,7 @@ class LibvirtCI():
                            uri=self.args.connect_uri)
         else:
             virsh.destroy('virt-tests-vm1', ignore_status=True)
-            virsh.undefine('virt-tests-vm1', '--snapshots-metadata --managed-save', ignore_status=True)
+            virsh.undefine('virt-tests-vm1', '--snapshots-metadata', ignore_status=True)
         if self.args.add_vms:
             for vm in self.args.add_vms.split(','):
                 virsh.destroy(vm, ignore_status=True)
@@ -1297,6 +1299,13 @@ class LibvirtCI():
                            DomainState(), NetworkState(), PoolState(),
                            SecretState(), MountState()]
             tests = self.prepare_tests()
+
+            if self.args.list:
+                for test in tests:
+                    short_name = test.split('.', 2)[2]
+                    print short_name
+                exit(0)
+
             if not tests:
                 report.update("", "no_test.no_test", "", "", "", 0)
                 print "No test to run!"
