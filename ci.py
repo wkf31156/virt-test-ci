@@ -843,6 +843,9 @@ class LibvirtCI():
             """
             Get all libvirt tests.
             """
+            if type(self.onlys) == set and not self.onlys:
+                return []
+
             cmd = './run -t libvirt --list-tests'
             if self.args.connect_uri:
                 cmd += ' --connect-uri %s' % self.args.connect_uri
