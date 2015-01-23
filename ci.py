@@ -790,10 +790,14 @@ class LibvirtCI():
                           'into guest')
         parser.add_option('--pull-virt-test', dest='virt_test_pull',
                           action='store', default='',
-                          help='Merge specified virt-test pull requests')
+                          help='Merge specified virt-test pull requests. '
+                          'Multiple pull requests are separated by ",", '
+                          'example: --pull-virt-test 175,183')
         parser.add_option('--pull-libvirt', dest='libvirt_pull',
                           action='store', default='',
-                          help='Merge specified tp-libvirt pull requests')
+                          help='Merge specified tp-libvirt pull requests. '
+                          'Multiple pull requests are separated by ",", '
+                          'example: --pull-libvirt 175,183')
         parser.add_option('--with-dependence', dest='with_dependence',
                           action='store_true',
                           help='Merge virt-test pull requests depend on')
