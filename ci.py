@@ -301,10 +301,14 @@ class State():
                 for key in new_keys:
                     diff_msg.append(key)
             if del_keys:
-                item_changed = True
-                diff_msg.append('Deleted key(s) in %s %s:' % (self.name, item))
                 for key in del_keys:
-                    diff_msg.append(key)
+                    if type(key) is str:
+                        if key not in self.permit_keys:
+                            item_changed = True
+                            diff_msg.append('Deleted key(s) in %s %s:' % (self.name, item))
+                    else:
+                        item_changed = True
+                        diff_msg.append('Deleted key(s) in %s %s:' % (self.name, item))
             for key in unchanged_keys:
                 if type(cur[key]) is str:
                     if key not in self.permit_keys and cur[key] != bak[key]:
@@ -674,7 +678,7 @@ class ServiceState(State):
 
 class DirState(State):
     name = 'directory'
-    permit_keys = []
+    permit_keys = ['aexpect']
     permit_re = []
 
     def remove(self, name):
