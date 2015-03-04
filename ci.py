@@ -987,7 +987,6 @@ class LibvirtCI():
                             check_modules=[],
                             online_docs_url=None,
                             interactive=False,
-                            download_image=False,
                             selinux=True,
                             restore_image=False,
                             verbose=True,
