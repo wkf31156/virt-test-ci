@@ -994,7 +994,8 @@ class LibvirtCI():
                             selinux=True,
                             restore_image=False,
                             verbose=True,
-                            update_providers=False)
+                            update_providers=False,
+                            force_update=True)
         os.chdir(data_dir.get_root_dir())
 
     def prepare_env(self):
@@ -1012,10 +1013,6 @@ class LibvirtCI():
 
         utils_libvirtd.Libvirtd().restart()
         service.Factory.create_service("nfs").restart()
-
-        print 'Running bootstrap'
-        sys.stdout.flush()
-        self.bootstrap()
 
         restore_image = True
         if self.args.img_url:
@@ -1049,6 +1046,10 @@ class LibvirtCI():
                 "shared/cfg/base.cfg",
                 r'^\s*vms = .*\n',
                 r'vms = %s\n' % vms_string)
+
+        print 'Running bootstrap'
+        sys.stdout.flush()
+        self.bootstrap()
 
         if self.args.retain_vm:
             return
