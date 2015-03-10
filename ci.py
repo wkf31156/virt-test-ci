@@ -985,7 +985,7 @@ class LibvirtCI():
         if os.path.exists(base_dir):
             if os.path.islink(base_dir) or os.path.isfile(base_dir):
                 os.unlink(base_dir)
-            else:
+            elif os.path.isdir(base_dir):
                 shutil.rmtree(base_dir)
         os.mkdir(base_dir)
         bootstrap.bootstrap(test_name='libvirt', test_dir=test_dir,
