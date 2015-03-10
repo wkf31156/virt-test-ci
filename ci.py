@@ -1017,20 +1017,6 @@ class LibvirtCI():
         utils_libvirtd.Libvirtd().restart()
         service.Factory.create_service("nfs").restart()
 
-        restore_image = True
-        if self.args.img_url:
-            def progress_callback(count, block_size, total_size):
-                #percent = count * block_size * 100 / total_size
-                #sys.stdout.write("\rDownloaded %2.2f%%" % percent)
-                #sys.stdout.flush()
-                pass
-            print 'Downloading image from %s.' % self.args.img_url
-            sys.stdout.flush()
-            img_dir = os.path.join(
-                os.path.realpath(data_dir.get_data_dir()), 'images/jeos-19-64.qcow2')
-            urllib.urlretrieve(self.args.img_url, img_dir, progress_callback)
-            restore_image = False
-
         if self.args.password:
             replace_pattern_in_file(
                 "shared/cfg/guest-os/Linux.cfg",
@@ -1053,6 +1039,20 @@ class LibvirtCI():
         print 'Running bootstrap'
         sys.stdout.flush()
         self.bootstrap()
+
+        restore_image = True
+        if self.args.img_url:
+            def progress_callback(count, block_size, total_size):
+                #percent = count * block_size * 100 / total_size
+                #sys.stdout.write("\rDownloaded %2.2f%%" % percent)
+                #sys.stdout.flush()
+                pass
+            print 'Downloading image from %s.' % self.args.img_url
+            sys.stdout.flush()
+            img_dir = os.path.join(
+                os.path.realpath(data_dir.get_data_dir()), 'images/jeos-19-64.qcow2')
+            urllib.urlretrieve(self.args.img_url, img_dir, progress_callback)
+            restore_image = False
 
         if self.args.retain_vm:
             return
