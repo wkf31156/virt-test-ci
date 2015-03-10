@@ -983,7 +983,7 @@ class LibvirtCI():
         default_userspace_paths = ["/usr/bin/qemu-kvm", "/usr/bin/qemu-img"]
         base_dir = data_dir.get_data_dir()
         if os.path.exists(base_dir):
-            if os.path.islink(base_dir):
+            if os.path.islink(base_dir) or os.path.isfile(base_dir):
                 os.unlink(base_dir)
             else:
                 shutil.rmtree(base_dir)
