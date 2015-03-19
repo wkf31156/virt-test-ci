@@ -426,7 +426,6 @@ class LibvirtCI():
             for line in res.stdout.splitlines():
                 err_msg.append(line)
         sys.stdout.flush()
-        print test, status, result_line
         return status, res, err_msg, result_line
 
     def prepare_repos(self):
