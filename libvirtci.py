@@ -19,19 +19,12 @@ from autotest.client import utils
 from report import Report
 from state import States
 
-reasons = {
-    "BUG 886456": {
-        "case": "virsh.change_media.floppy_test.positive_test.insert.options.live_floppy_rw.running_guest",
-        "result": "mount: .* is not a valid block device",
-    }
-}
-
 
 class LibvirtCI():
 
     def parse_args(self):
         parser = optparse.OptionParser(
-            description='Continuouse integration of '
+            description='Continuous integration of '
             'virt-test libvirt test provider.')
         parser.add_option('--list', dest='list', action='store_true',
                           help='List all the test names')
@@ -88,6 +81,9 @@ class LibvirtCI():
                           help='Merge specified tp-libvirt pull requests. '
                           'Multiple pull requests are separated by ",", '
                           'example: --pull-libvirt 175,183')
+        parser.add_option('--reason-url', dest='reason_url', action='store',
+                          default='',
+                          help='Specify a URL to a JSON reason file')
         parser.add_option('--with-dependence', dest='with_dependence',
                           action='store_true',
                           help='Merge virt-test pull requests depend on')
@@ -426,6 +422,7 @@ class LibvirtCI():
             for line in res.stdout.splitlines():
                 err_msg.append(line)
         sys.stdout.flush()
+        print test, status, result_line
         return status, res, err_msg, result_line
 
     def prepare_repos(self):
@@ -572,7 +569,7 @@ class LibvirtCI():
 
 
     def get_reason(self, result_line):
-        for name, reason in reasons.items():
+        for name, reason in self.reasons.items():
             if (re.search(reason['case'], result_line) and
                     re.search(reason['result'], result_line)):
                 return name
@@ -590,6 +587,14 @@ class LibvirtCI():
             print 'Result:'
             for line in str(res).splitlines():
                 print line
+
+        self.reasons = {}
+        if self.args.reason_url:
+            print 'Downloading reason from %s.' % self.args.reason_url
+            sys.stdout.flush()
+            reason_u = urllib2.urlopen(self.args.reason_url)
+            self.reasons = json.load(reason_u)
+
         tests = self.prepare_tests()
 
         if self.args.list:

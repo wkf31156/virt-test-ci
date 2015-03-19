@@ -97,6 +97,7 @@ class Report():
         self.result_counter = {}
         self.fail_reason_counter = {}
         self.error_reason_counter = {}
+        self.timeout_reason_counter = {}
         self.skip_reason_counter = {}
 
     def save(self, filename, report_file):
@@ -121,6 +122,12 @@ class Report():
                             fp.write("\t\t%s\n" % case)
                 if result == 'ERROR':
                     for reason, cases in self.error_reason_counter.items():
+                        if reason is None: reason = "unknown reason"
+                        fp.write("\t- %3s caused by %s\n" % (len(cases), reason))
+                        for case in cases:
+                            fp.write("\t\t%s\n" % case)
+                if result == 'TIMEOUT':
+                    for reason, cases in self.timeout_reason_counter.items():
                         if reason is None: reason = "unknown reason"
                         fp.write("\t- %3s caused by %s\n" % (len(cases), reason))
                         for case in cases:
@@ -160,6 +167,8 @@ class Report():
 
         tc = self.testcaseType()
         tc.name = testname
+        if reason:
+            tc.name += " " + reason
         tc.time = duration
 
         if result in self.result_counter:
@@ -177,6 +186,11 @@ class Report():
                 self.error_reason_counter[reason].append(testname)
             else:
                 self.error_reason_counter[reason] = [testname]
+        elif result == 'TIMEOUT':
+            if reason in self.timeout_reason_counter:
+                self.timeout_reason_counter[reason].append(testname)
+            else:
+                self.timeout_reason_counter[reason] = [testname]
         elif result == 'SKIP':
             if reason in self.skip_reason_counter:
                 self.skip_reason_counter[reason].append(testname)
