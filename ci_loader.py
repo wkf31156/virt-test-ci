@@ -127,7 +127,7 @@ def _retrieve_repos():
 
 REPOS = ['autotest', 'virt-test', 'tp-libvirt', 'tp-qemu']
 ENVS = {
-    k.lstrip('CI_').lower(): v
+    k[3:].lower(): v
     for k, v in os.environ.items()
     if k.startswith('CI_')
 }

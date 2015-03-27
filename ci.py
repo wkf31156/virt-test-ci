@@ -232,14 +232,12 @@ class LibvirtCI():
 
         restore_image = True
         if self.args.img_url:
-            def progress_callback(count, block_size, total_size):
-                pass
             print 'Downloading image from %s.' % self.args.img_url
             sys.stdout.flush()
             img_dir = os.path.join(
                 os.path.realpath(data_dir.get_data_dir()),
                 'images/jeos-19-64.qcow2')
-            urllib.urlretrieve(self.args.img_url, img_dir, progress_callback)
+            urllib.urlretrieve(self.args.img_url, img_dir)
             restore_image = False
 
         if self.args.retain_vm:
