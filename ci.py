@@ -204,7 +204,7 @@ class LibvirtCI():
                             force_update=True)
         os.chdir(data_dir.get_root_dir())
 
-    def replace_pattern_in_file(file, search_exp, replace_exp):
+    def replace_pattern_in_file(self, file, search_exp, replace_exp):
         prog = re.compile(search_exp)
         for line in fileinput.input(file, inplace=1):
             match = prog.search(line)
