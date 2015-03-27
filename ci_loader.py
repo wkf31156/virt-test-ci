@@ -10,6 +10,7 @@ if __name__ != '__main__':
     logging.warning("Can't import ci_loader as a module, exiting.")
     sys.exit(1)
 
+
 def _parse_args():
     parser = optparse.OptionParser(
         description='Continuous integration of '
@@ -96,19 +97,22 @@ def _parse_args():
     parser.add_option('--test-path', dest='test_path', action='store',
                       default='', help='Path for the test directory')
     parser.add_option('--autotest-repo', dest='autotest_repo', action='store',
-                      default='https://github.com/autotest/autotest.git master',
-                      help='URL and branch for autotest repo')
-    parser.add_option('--virt-test-repo', dest='virt_test_repo', action='store',
-                      default='https://github.com/autotest/virt-test.git master',
-                      help='URL and branch for virt-test repo')
-    parser.add_option('--tp-libvirt-repo', dest='tp_libvirt_repo', action='store',
-                      default='https://github.com/autotest/tp-libvirt.git master',
-                      help='URL and branch for tp-libvirt repo')
+                      default='https://github.com/autotest/autotest.git '
+                      'master', help='URL and branch for autotest repo')
+    parser.add_option('--virt-test-repo', dest='virt_test_repo',
+                      action='store',
+                      default='https://github.com/autotest/virt-test.git '
+                      'master', help='URL and branch for virt-test repo')
+    parser.add_option('--tp-libvirt-repo', dest='tp_libvirt_repo',
+                      action='store',
+                      default='https://github.com/autotest/tp-libvirt.git '
+                      'master', help='URL and branch for tp-libvirt repo')
     parser.add_option('--tp-qemu-repo', dest='tp_qemu_repo', action='store',
                       default='https://github.com/autotest/tp-qemu.git master',
                       help='URL and branch for tp-qemu repo')
     args, real_args = parser.parse_args()
     return args
+
 
 def _retrieve_repos():
     for repo in REPOS:
@@ -119,6 +123,7 @@ def _retrieve_repos():
 
         os.system('git clone --quiet --depth 1 %s %s --branch %s' %
                   (repo_url, repo, branch))
+
 
 REPOS = ['autotest', 'virt-test', 'tp-libvirt', 'tp-qemu']
 ENVS = {

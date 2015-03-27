@@ -137,10 +137,12 @@ class State():
                     if type(key) is str:
                         if key not in self.permit_keys:
                             item_changed = True
-                            diff_msg.append('Deleted key(s) in %s %s:' % (self.name, item))
+                            diff_msg.append('Deleted key(s) in %s %s:' %
+                                            (self.name, item))
                     else:
                         item_changed = True
-                        diff_msg.append('Deleted key(s) in %s %s:' % (self.name, item))
+                        diff_msg.append('Deleted key(s) in %s %s:' %
+                                        (self.name, item))
             for key in unchanged_keys:
                 if type(cur[key]) is str:
                     if key not in self.permit_keys and cur[key] != bak[key]:
@@ -433,8 +435,6 @@ class MountState(State):
 
     def remove(self, name):
         info = name
-        # ugly workaround for nfs which unable to umount
-        #os.system('systemctl restart nfs')
         if not umount(info['src'], info['mount_point'], info['fstype'],
                       verbose=False):
             raise Exception("Failed to unmount %s" % info['mount_point'])

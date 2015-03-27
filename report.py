@@ -1,7 +1,7 @@
 import string
-from collections import Counter
 from autotest.client.tools import JUnit_api as api
 from datetime import date
+
 
 class Report():
 
@@ -39,20 +39,19 @@ class Report():
                         namespace_))
 
         def hasContent_(self):
-            if (
-                self.system_out is not None or
-                self.system_err is not None or
-                self.error is not None or
-                self.failure is not None or
-                self.skip is not None
-            ):
+            if (self.system_out is not None or
+                    self.system_err is not None or
+                    self.error is not None or
+                    self.failure is not None or
+                    self.skip is not None):
                 return True
             else:
                 return False
 
     class failureType(api.failureType):
 
-        def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='failureType'):
+        def exportAttributes(self, outfile, level, already_processed,
+                             namespace_='', name_='failureType'):
             if self.message is not None and 'message' not in already_processed:
                 already_processed.append('message')
                 outfile.write(' message="%s"' % self.message)
@@ -62,7 +61,8 @@ class Report():
 
     class errorType(api.errorType):
 
-        def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='errorType'):
+        def exportAttributes(self, outfile, level, already_processed,
+                             namespace_='', name_='errorType'):
             if self.message is not None and 'message' not in already_processed:
                 already_processed.append('message')
                 outfile.write(' message="%s"' % self.message)
@@ -116,30 +116,39 @@ class Report():
                 fp.write("* %3s cases %s\n" % (len(cases), result))
                 if result == 'FAIL':
                     for reason, cases in self.fail_reason_counter.items():
-                        if reason is None: reason = "unknown reason"
-                        fp.write("\t- %3s caused by %s\n" % (len(cases), reason))
+                        if reason is None:
+                            reason = "unknown reason"
+                        fp.write("\t- %3s caused by %s\n" %
+                                 (len(cases), reason))
                         for case in cases:
                             fp.write("\t\t%s\n" % case)
                 if result == 'ERROR':
                     for reason, cases in self.error_reason_counter.items():
-                        if reason is None: reason = "unknown reason"
-                        fp.write("\t- %3s caused by %s\n" % (len(cases), reason))
+                        if reason is None:
+                            reason = "unknown reason"
+                        fp.write("\t- %3s caused by %s\n" %
+                                 (len(cases), reason))
                         for case in cases:
                             fp.write("\t\t%s\n" % case)
                 if result == 'TIMEOUT':
                     for reason, cases in self.timeout_reason_counter.items():
-                        if reason is None: reason = "unknown reason"
-                        fp.write("\t- %3s caused by %s\n" % (len(cases), reason))
+                        if reason is None:
+                            reason = "unknown reason"
+                        fp.write("\t- %3s caused by %s\n" %
+                                 (len(cases), reason))
                         for case in cases:
                             fp.write("\t\t%s\n" % case)
                 if result == 'SKIP':
                     for reason, cases in self.skip_reason_counter.items():
-                        if reason is None: reason = "unknown reason"
-                        fp.write("\t- %3s caused by %s\n" % (len(cases), reason))
+                        if reason is None:
+                            reason = "unknown reason"
+                        fp.write("\t- %3s caused by %s\n" %
+                                 (len(cases), reason))
                         for case in cases:
                             fp.write("\t\t%s\n" % case)
 
-    def update(self, testname, ts_name, result, reason, log, error_msg, duration):
+    def update(self, testname, ts_name, result, reason, log, error_msg,
+               duration):
         """
         Insert a new item into report.
         """

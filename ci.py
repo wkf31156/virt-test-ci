@@ -241,7 +241,8 @@ class LibvirtCI():
             print 'Downloading image from %s.' % self.args.img_url
             sys.stdout.flush()
             img_dir = os.path.join(
-                os.path.realpath(data_dir.get_data_dir()), 'images/jeos-19-64.qcow2')
+                os.path.realpath(data_dir.get_data_dir()),
+                'images/jeos-19-64.qcow2')
             urllib.urlretrieve(self.args.img_url, img_dir, progress_callback)
             restore_image = False
 
@@ -260,7 +261,8 @@ class LibvirtCI():
                            uri=self.args.connect_uri)
         else:
             virsh.destroy('virt-tests-vm1', ignore_status=True)
-            virsh.undefine('virt-tests-vm1', '--snapshots-metadata', ignore_status=True)
+            virsh.undefine('virt-tests-vm1', '--snapshots-metadata',
+                           ignore_status=True)
         if self.args.add_vms:
             for vm in self.args.add_vms.split(','):
                 virsh.destroy(vm, ignore_status=True)
@@ -269,7 +271,8 @@ class LibvirtCI():
         print 'Installing VM',
         sys.stdout.flush()
         if 'lxc' in self.args.connect_uri:
-            cmd = 'virt-install --connect=lxc:/// --name virt-tests-vm1 --ram 500 --noautoconsole'
+            cmd = ('virt-install --connect=lxc:/// --name virt-tests-vm1 '
+                   '--ram 500 --noautoconsole')
             try:
                 utils.run(cmd)
             except error.CmdError, e:
@@ -298,8 +301,8 @@ class LibvirtCI():
         """
         img_str = '' if restore_image else 'k'
         down_str = '' if restore_image else '--no-downloads'
-        cmd = './run -v%st libvirt --keep-image-between-tests %s --tests %s' % (
-            img_str, down_str, test)
+        cmd = ('./run -v%st libvirt --keep-image-between-tests %s'
+               ' --tests %s' % (img_str, down_str, test))
         if self.args.connect_uri:
             cmd += ' --connect-uri %s' % self.args.connect_uri
         status = 'INVALID'
@@ -380,7 +383,8 @@ class LibvirtCI():
 
         def search_dep(line):
             pattern1 = r'autotest/virt-test#([0-9]*)'
-            pattern2 = (r'https?://github.com/autotest/virt-test/(?:pull|issues)/([0-9]*)')
+            pattern2 = (r'https?://github.com/autotest/virt-test/'
+                        '(?:pull|issues)/([0-9]*)')
             res = set()
             match = re.findall(pattern1, line)
             res |= set(match)
@@ -391,7 +395,8 @@ class LibvirtCI():
         def pr_open(repo_name, pr_number):
             oauth = ('?client_id=b6578298435c3eaa1e3d&client_secret'
                      '=59a1c828c6002ed4e8a9205486cf3fa86467a609')
-            issues_url = 'https://api.github.com/repos/autotest/%s/issues/' % repo_name
+            issues_url = ('https://api.github.com/repos/autotest/%s/issues/' %
+                          repo_name)
             issue_url = issues_url + pr_number + oauth
             issue_u = urllib2.urlopen(issue_url)
             issue = json.load(issue_u)
@@ -403,7 +408,8 @@ class LibvirtCI():
             dep = set()
             for pr_number in pr_numbers:
                 # Find PR's first comment for dependencies.
-                issues_url = 'https://api.github.com/repos/autotest/tp-libvirt/issues/'
+                issues_url = ('https://api.github.com/repos/autotest/'
+                              'tp-libvirt/issues/')
                 issue_url = issues_url + pr_number + oauth
                 issue_u = urllib2.urlopen(issue_url)
                 issue = json.load(issue_u)
@@ -478,7 +484,6 @@ class LibvirtCI():
                 'io-github-autotest-libvirt'))
             restore_repo(self.libvirt_branch_name)
         os.chdir(data_dir.get_root_dir())
-
 
     def get_reason(self, result_line):
         for name, reason in self.reasons.items():
@@ -556,7 +561,8 @@ class LibvirtCI():
                               res.stderr, err_msg, res.duration)
                 report.save(self.args.report, self.args.txt_report)
             if self.args.post_cmd:
-                print 'Running command line "%s" after test.' % self.args.post_cmd
+                print ('Running command line "%s" after test.' %
+                       self.args.post_cmd)
                 res = utils.run(self.args.post_cmd, ignore_status=True)
                 print 'Result:'
                 for line in str(res).splitlines():
