@@ -148,7 +148,14 @@ class LibvirtCI():
         with open('run.test', 'w') as fp:
             for test in tests:
                 fp.write(test + '\n')
-        return tests
+
+        if self.args.list:
+            for test in tests:
+                short_name = test.split('.', 2)[2]
+                print short_name
+            exit(0)
+
+        self.tests = tests
 
     def split_name(self, name):
         """
@@ -178,6 +185,9 @@ class LibvirtCI():
     def bootstrap(self):
         from virttest import bootstrap
 
+        print 'Bootstrapping'
+        sys.stdout.flush()
+
         test_dir = data_dir.get_backend_dir('libvirt')
         default_userspace_paths = ["/usr/bin/qemu-kvm", "/usr/bin/qemu-img"]
         base_dir = data_dir.get_data_dir()
@@ -194,100 +204,18 @@ class LibvirtCI():
                             force_update=True)
         os.chdir(data_dir.get_root_dir())
 
+    def replace_pattern_in_file(file, search_exp, replace_exp):
+        prog = re.compile(search_exp)
+        for line in fileinput.input(file, inplace=1):
+            match = prog.search(line)
+            if match:
+                line = prog.sub(replace_exp, line)
+            sys.stdout.write(line)
+
     def prepare_env(self):
         """
         Prepare the environment before all tests.
         """
-
-        def replace_pattern_in_file(file, search_exp, replace_exp):
-            prog = re.compile(search_exp)
-            for line in fileinput.input(file, inplace=1):
-                match = prog.search(line)
-                if match:
-                    line = prog.sub(replace_exp, line)
-                sys.stdout.write(line)
-
-        utils_libvirtd.Libvirtd().restart()
-        service.Factory.create_service("nfs").restart()
-
-        if self.args.password:
-            replace_pattern_in_file(
-                "shared/cfg/guest-os/Linux.cfg",
-                r'password = \S*',
-                r'password = %s' % self.args.password)
-
-        if self.args.os_variant:
-            replace_pattern_in_file(
-                "shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg",
-                r'os_variant = \S*',
-                r'os_variant = %s' % self.args.os_variant)
-
-        if self.args.add_vms:
-            vms_string = "virt-tests-vm1 " + " ".join(
-                self.args.add_vms.split(','))
-            replace_pattern_in_file(
-                "shared/cfg/base.cfg",
-                r'^\s*vms = .*\n',
-                r'vms = %s\n' % vms_string)
-
-        restore_image = True
-        if self.args.img_url:
-            print 'Downloading image from %s.' % self.args.img_url
-            sys.stdout.flush()
-            img_dir = os.path.join(
-                os.path.realpath(data_dir.get_data_dir()),
-                'images/jeos-19-64.qcow2')
-            urllib.urlretrieve(self.args.img_url, img_dir)
-            restore_image = False
-
-        if self.args.retain_vm:
-            return
-
-        print 'Removing VM\n',  # TODO: use virt-test api remove VM
-        sys.stdout.flush()
-        if self.args.connect_uri:
-            virsh.destroy('virt-tests-vm1',
-                          ignore_status=True,
-                          uri=self.args.connect_uri)
-            virsh.undefine('virt-tests-vm1',
-                           '--snapshots-metadata --managed-save',
-                           ignore_status=True,
-                           uri=self.args.connect_uri)
-        else:
-            virsh.destroy('virt-tests-vm1', ignore_status=True)
-            virsh.undefine('virt-tests-vm1', '--snapshots-metadata',
-                           ignore_status=True)
-        if self.args.add_vms:
-            for vm in self.args.add_vms.split(','):
-                virsh.destroy(vm, ignore_status=True)
-                virsh.undefine(vm, '--snapshots-metadata', ignore_status=True)
-
-        print 'Installing VM',
-        sys.stdout.flush()
-        if 'lxc' in self.args.connect_uri:
-            cmd = ('virt-install --connect=lxc:/// --name virt-tests-vm1 '
-                   '--ram 500 --noautoconsole')
-            try:
-                utils.run(cmd)
-            except error.CmdError, e:
-                raise Exception('   ERROR: Failed to install guest \n %s' % e)
-        else:
-            status, res, err_msg, result_line = self.run_test(
-                'unattended_install.import.import.default_install.aio_native',
-                restore_image=restore_image)
-            if 'PASS' not in status:
-                raise Exception('   ERROR: Failed to install guest \n %s' %
-                                res.stderr)
-            virsh.destroy('virt-tests-vm1')
-        if self.args.add_vms:
-            for vm in self.args.add_vms.split(','):
-                cmd = 'virt-clone '
-                if self.args.connect_uri:
-                    cmd += '--connect=%s ' % self.args.connect_uri
-                cmd += '--original=virt-tests-vm1 '
-                cmd += '--name=%s ' % vm
-                cmd += '--auto-clone'
-                utils.run(cmd)
 
     def run_test(self, test, restore_image=False):
         """
@@ -485,10 +413,88 @@ class LibvirtCI():
                     re.search(reason['result'], result_line)):
                 return name
 
-    def run(self):
-        """
-        Run continuous integrate for virt-test test cases.
-        """
+    def prepare_vm(self):
+        restore_image = True
+        if self.args.img_url:
+            print 'Downloading image from %s.' % self.args.img_url
+            sys.stdout.flush()
+            img_dir = os.path.join(
+                os.path.realpath(data_dir.get_data_dir()),
+                'images/jeos-19-64.qcow2')
+            urllib.urlretrieve(self.args.img_url, img_dir)
+            restore_image = False
+
+        if self.args.retain_vm:
+            return
+
+        print 'Removing VM\n',  # TODO: use virt-test api remove VM
+        sys.stdout.flush()
+        if self.args.connect_uri:
+            virsh.destroy('virt-tests-vm1',
+                          ignore_status=True,
+                          uri=self.args.connect_uri)
+            virsh.undefine('virt-tests-vm1',
+                           '--snapshots-metadata --managed-save',
+                           ignore_status=True,
+                           uri=self.args.connect_uri)
+        else:
+            virsh.destroy('virt-tests-vm1', ignore_status=True)
+            virsh.undefine('virt-tests-vm1', '--snapshots-metadata',
+                           ignore_status=True)
+        if self.args.add_vms:
+            for vm in self.args.add_vms.split(','):
+                virsh.destroy(vm, ignore_status=True)
+                virsh.undefine(vm, '--snapshots-metadata', ignore_status=True)
+
+        print 'Installing VM',
+        sys.stdout.flush()
+        if 'lxc' in self.args.connect_uri:
+            cmd = ('virt-install --connect=lxc:/// --name virt-tests-vm1 '
+                   '--ram 500 --noautoconsole')
+            try:
+                utils.run(cmd)
+            except error.CmdError, e:
+                raise Exception('   ERROR: Failed to install guest \n %s' % e)
+        else:
+            status, res, err_msg, result_line = self.run_test(
+                'unattended_install.import.import.default_install.aio_native',
+                restore_image=restore_image)
+            if 'PASS' not in status:
+                raise Exception('   ERROR: Failed to install guest \n %s' %
+                                res.stderr)
+            virsh.destroy('virt-tests-vm1')
+        if self.args.add_vms:
+            for vm in self.args.add_vms.split(','):
+                cmd = 'virt-clone '
+                if self.args.connect_uri:
+                    cmd += '--connect=%s ' % self.args.connect_uri
+                cmd += '--original=virt-tests-vm1 '
+                cmd += '--name=%s ' % vm
+                cmd += '--auto-clone'
+                utils.run(cmd)
+
+    def prepare_cfg(self):
+        if self.args.password:
+            self.replace_pattern_in_file(
+                "shared/cfg/guest-os/Linux.cfg",
+                r'password = \S*',
+                r'password = %s' % self.args.password)
+
+        if self.args.os_variant:
+            self.replace_pattern_in_file(
+                "shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg",
+                r'os_variant = \S*',
+                r'os_variant = %s' % self.args.os_variant)
+
+        if self.args.add_vms:
+            vms_string = "virt-tests-vm1 " + " ".join(
+                self.args.add_vms.split(','))
+            self.replace_pattern_in_file(
+                "shared/cfg/base.cfg",
+                r'^\s*vms = .*\n',
+                r'vms = %s\n' % vms_string)
+
+    def prepare(self):
         self.prepare_repos()
 
         if self.args.pre_cmd:
@@ -498,6 +504,21 @@ class LibvirtCI():
             for line in str(res).splitlines():
                 print line
 
+        self.bootstrap()
+
+        self.prepare_tests()
+
+        self.report = Report(self.args.fail_diff)
+        if not self.tests:
+            self.report.update("", "no_test.no_test", "", "", "", "", 0)
+            print "No test to run!"
+            exit(0)
+
+        utils_libvirtd.Libvirtd().restart()
+        service.Factory.create_service("nfs").restart()
+
+        self.prepare_cfg()
+
         self.reasons = {}
         if self.args.reason_url:
             print 'Downloading reason from %s.' % self.args.reason_url
@@ -505,32 +526,22 @@ class LibvirtCI():
             reason_u = urllib2.urlopen(self.args.reason_url)
             self.reasons = json.load(reason_u)
 
-        print 'Running bootstrap'
-        sys.stdout.flush()
-        self.bootstrap()
+        self.prepare_vm()
 
-        tests = self.prepare_tests()
-
-        if self.args.list:
-            for test in tests:
-                short_name = test.split('.', 2)[2]
-                print short_name
-            return
-
-        report = Report(self.args.fail_diff)
-        if not tests:
-            report.update("", "no_test.no_test", "", "", "", "", 0)
-            print "No test to run!"
-            return
-
-        self.prepare_env()
         self.states = States()
         self.states.backup()
+
+    def run(self):
+        """
+        Run continuous integrate for virt-test test cases.
+        """
+
+        self.prepare()
         try:
-            for idx, test in enumerate(tests):
+            for idx, test in enumerate(self.tests):
                 short_name = test.split('.', 2)[2]
                 print '%s (%d/%d) %s ' % (time.strftime('%X'), idx + 1,
-                                          len(tests), short_name),
+                                          len(self.tests), short_name),
                 sys.stdout.flush()
 
                 status, res, err_msg, result_line = self.run_test(test)
@@ -551,9 +562,9 @@ class LibvirtCI():
 
                 class_name, test_name = self.split_name(test)
 
-                report.update(test_name, class_name, status, reason,
-                              res.stderr, err_msg, res.duration)
-                report.save(self.args.report, self.args.txt_report)
+                self.report.update(test_name, class_name, status, reason,
+                                   res.stderr, err_msg, res.duration)
+                self.report.save(self.args.report, self.args.txt_report)
             if self.args.post_cmd:
                 print ('Running command line "%s" after test.' %
                        self.args.post_cmd)
@@ -566,4 +577,4 @@ class LibvirtCI():
         finally:
             if not self.args.no_restore_pull:
                 self.restore_repos()
-            report.save(self.args.report, self.args.txt_report)
+            self.report.save(self.args.report, self.args.txt_report)
