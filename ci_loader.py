@@ -154,9 +154,12 @@ if os.getcwd() == test_path:
             for repo in REPOS:
                 shutil.copytree(os.path.join(workspace, repo), repo)
     os.system('cp -r virt-test/* ./')
-    os.makedirs('test-providers.d/downloads/')
-    shutil.move('tp-libvirt', 'test-providers.d/downloads')
-    shutil.move('tp-qemu', 'test-providers.d/downloads')
+    if not os.path.exists('test-providers.d/downloads/'):
+        os.makedirs('test-providers.d/downloads/')
+    if not os.path.exists('test-providers.d/downloads/tp-libvirt'):
+        os.symlink('../../tp-libvirt', 'test-providers.d/downloads/tp-libvirt')
+    if not os.path.exists('test-providers.d/downloads/tp-qemu'):
+        os.symlink('../../tp-qemu', 'test-providers.d/downloads/tp-qemu')
 
     from ci import LibvirtCI
     logging.warning("Start running libvirt CI in %s" % test_path)
