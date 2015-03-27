@@ -181,10 +181,6 @@ class LibvirtCI():
         test_dir = data_dir.get_backend_dir('libvirt')
         default_userspace_paths = ["/usr/bin/qemu-kvm", "/usr/bin/qemu-img"]
         base_dir = data_dir.get_data_dir()
-        if os.path.exists(base_dir):
-            if os.path.islink(base_dir) or os.path.isfile(base_dir):
-                os.unlink(base_dir)
-                os.mkdir(base_dir)
         bootstrap.bootstrap(test_name='libvirt', test_dir=test_dir,
                             base_dir=base_dir,
                             default_userspace_paths=default_userspace_paths,
