@@ -157,9 +157,11 @@ if os.getcwd() == test_path:
     if not os.path.exists('test-providers.d/downloads/'):
         os.makedirs('test-providers.d/downloads/')
     if not os.path.exists('test-providers.d/downloads/tp-libvirt'):
-        os.symlink('../../tp-libvirt', 'test-providers.d/downloads/tp-libvirt')
+        os.symlink('../../tp-libvirt',
+                   'test-providers.d/downloads/io-github-autotest-libvirt')
     if not os.path.exists('test-providers.d/downloads/tp-qemu'):
-        os.symlink('../../tp-qemu', 'test-providers.d/downloads/tp-qemu')
+        os.symlink('../../tp-qemu',
+                   'test-providers.d/downloads/io-github-autotest-qemu')
 
     from ci import LibvirtCI
     logging.warning("Start running libvirt CI in %s" % test_path)
