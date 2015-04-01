@@ -356,28 +356,28 @@ class LibvirtCI():
 
         self.virt_branch_name, self.libvirt_branch_name = None, None
 
-        libvirt_pulls = set()
-        virt_test_pulls = set()
+        pull_libvirts = set()
+        pull_virt_tests = set()
 
-        if self.args.libvirt_pull:
-            libvirt_pulls = set(self.args.libvirt_pull.split(','))
+        if self.args.pull_libvirt:
+            pull_libvirts = set(self.args.pull_libvirt.split(','))
 
         if self.args.with_dependence:
-            virt_test_pulls = libvirt_pr_dep(libvirt_pulls)
+            pull_virt_tests = libvirt_pr_dep(pull_libvirts)
 
-        if self.args.virt_test_pull:
-            virt_test_pulls |= set(self.args.virt_test_pull.split(','))
+        if self.args.pull_virt_test:
+            pull_virt_tests |= set(self.args.pull_virt_test.split(','))
 
-        if virt_test_pulls:
+        if pull_virt_tests:
             os.chdir(data_dir.get_root_dir())
-            self.virt_branch_name = merge_pulls("virt-test", virt_test_pulls)
+            self.virt_branch_name = merge_pulls("virt-test", pull_virt_tests)
             if self.args.only_change:
                 self.virt_file_changed = file_changed("virt-test")
 
-        if libvirt_pulls:
+        if pull_libvirts:
             os.chdir(data_dir.get_test_provider_dir(
                 'io-github-autotest-libvirt'))
-            self.libvirt_branch_name = merge_pulls("tp-libvirt", libvirt_pulls)
+            self.libvirt_branch_name = merge_pulls("tp-libvirt", pull_libvirts)
             if self.args.only_change:
                 self.libvirt_file_changed = file_changed("tp-libvirt")
 
@@ -441,8 +441,8 @@ class LibvirtCI():
             virsh.destroy('virt-tests-vm1', ignore_status=True)
             virsh.undefine('virt-tests-vm1', '--snapshots-metadata',
                            ignore_status=True)
-        if self.args.add_vms:
-            for vm in self.args.add_vms.split(','):
+        if self.args.additional_vms:
+            for vm in self.args.additional_vms.split(','):
                 virsh.destroy(vm, ignore_status=True)
                 virsh.undefine(vm, '--snapshots-metadata', ignore_status=True)
 
@@ -463,8 +463,8 @@ class LibvirtCI():
                 raise Exception('   ERROR: Failed to install guest \n %s' %
                                 res.stderr)
             virsh.destroy('virt-tests-vm1')
-        if self.args.add_vms:
-            for vm in self.args.add_vms.split(','):
+        if self.args.additional_vms:
+            for vm in self.args.additional_vms.split(','):
                 cmd = 'virt-clone '
                 if self.args.connect_uri:
                     cmd += '--connect=%s ' % self.args.connect_uri
@@ -486,9 +486,9 @@ class LibvirtCI():
                 r'os_variant = \S*',
                 r'os_variant = %s' % self.args.os_variant)
 
-        if self.args.add_vms:
+        if self.args.additional_vms:
             vms_string = "virt-tests-vm1 " + " ".join(
-                self.args.add_vms.split(','))
+                self.args.additional_vms.split(','))
             self.replace_pattern_in_file(
                 "shared/cfg/base.cfg",
                 r'^\s*vms = .*\n',
@@ -564,7 +564,7 @@ class LibvirtCI():
 
                 self.report.update(test_name, class_name, status, reason,
                                    res.stderr, err_msg, res.duration)
-                self.report.save(self.args.report, self.args.txt_report)
+                self.report.save(self.args.report, self.args.text_report)
             if self.args.post_cmd:
                 print ('Running command line "%s" after test.' %
                        self.args.post_cmd)
@@ -577,4 +577,4 @@ class LibvirtCI():
         finally:
             if not self.args.no_restore_pull:
                 self.restore_repos()
-            self.report.save(self.args.report, self.args.txt_report)
+            self.report.save(self.args.report, self.args.text_report)

@@ -30,7 +30,7 @@ def _parse_args():
                       'after each test.')
     parser.add_option('--connect-uri', dest='connect_uri', action='store',
                       default='', help='Run tests using specified uri.')
-    parser.add_option('--additional-vms', dest='add_vms', action='store',
+    parser.add_option('--additional-vms', dest='additional_vms', action='store',
                       default='', help='Additional VMs for testing')
     parser.add_option('--smoke', dest='smoke', action='store_true',
                       help='Run one test for each script.')
@@ -39,13 +39,13 @@ def _parse_args():
     parser.add_option('--report', dest='report', action='store',
                       default='xunit_result.xml',
                       help='Exclude specified tests.')
-    parser.add_option('--text-report', dest='txt_report', action='store',
+    parser.add_option('--text-report', dest='text_report', action='store',
                       default='report.txt',
                       help='Exclude specified tests.')
-    parser.add_option('--white', dest='whitelist', action='store',
+    parser.add_option('--whitelist', dest='whitelist', action='store',
                       default='', help='Whitelist file contains '
                       'specified test cases to run.')
-    parser.add_option('--black', dest='blacklist', action='store',
+    parser.add_option('--blacklist', dest='blacklist', action='store',
                       default='', help='Blacklist file contains '
                       'specified test cases to be excluded.')
     parser.add_option('--config', dest='config', action='store',
@@ -60,12 +60,12 @@ def _parse_args():
     parser.add_option('--password', dest='password', action='store',
                       default='', help='Specify a password for logging '
                       'into guest')
-    parser.add_option('--pull-virt-test', dest='virt_test_pull',
+    parser.add_option('--pull-virt-test', dest='pull_virt_test',
                       action='store', default='',
                       help='Merge specified virt-test pull requests. '
                       'Multiple pull requests are separated by ",", '
                       'example: --pull-virt-test 175,183')
-    parser.add_option('--pull-libvirt', dest='libvirt_pull',
+    parser.add_option('--pull-libvirt', dest='pull_libvirt',
                       action='store', default='',
                       help='Merge specified tp-libvirt pull requests. '
                       'Multiple pull requests are separated by ",", '
@@ -132,8 +132,9 @@ ENVS = {
     if k.startswith('CI_')
 }
 ARGS = _parse_args()
+
 for key, value in ENVS.items():
-    if hasattr(ARGS, key) and not getattr(ARGS, key):
+    if value and hasattr(ARGS, key):
         setattr(ARGS, key, value)
 
 if 'test_path' in ENVS:
