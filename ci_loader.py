@@ -182,6 +182,11 @@ else:
 
     if not all([os.path.exists(repo) for repo in REPOS]):
         _retrieve_repos()
+    else:
+        for repo in REPOS:
+            os.chdir(repo)
+            os.system('git pull')
+            os.chdir('..')
 
     if os.path.exists(test_path):
         logging.warning("Path %s exists. Cleaning up...", test_path)
