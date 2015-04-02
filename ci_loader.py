@@ -110,6 +110,11 @@ def _parse_args():
     parser.add_option('--tp-qemu-repo', dest='tp_qemu_repo', action='store',
                       default='https://github.com/autotest/tp-qemu.git master',
                       help='URL and branch for tp-qemu repo')
+    parser.add_option('--yum-repos', dest='yum_repos', action='store',
+                      default='', help='YUM repos setup before test')
+    parser.add_option('--install-pkgs', dest='install_pkgs', action='store',
+                      default='',
+                      help='Packages should be installed before test')
     args, real_args = parser.parse_args()
     return args
 

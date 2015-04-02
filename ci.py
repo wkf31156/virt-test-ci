@@ -7,6 +7,8 @@ import urllib2
 import json
 import fileinput
 import traceback
+import platform
+import ConfigParser
 
 from virttest import data_dir
 from virttest import virsh
@@ -23,6 +25,77 @@ class LibvirtCI():
 
     def __init__(self, args):
         self.args = args
+
+    def prepare_pkgs(self):
+        def _setup_repos(repo_dict):
+            config = ConfigParser.ConfigParser()
+            for name, url in repo_dict.items():
+                dist_name, dist_version, dist_codename = platform.dist()
+                ver_major = None
+                if dist_version.count('.') == 0:
+                    ver_major = dist_version
+                elif dist_version.count('.') >= 1:
+                    vers = dist_version.split('.')
+                    ver_major = vers[0]
+
+                if name == 'epel':
+                    if dist_name == 'redhat':
+                        url = ('http://download.fedoraproject.org/pub/'
+                               'epel/%s/$basearch' % ver_major)
+                else:
+                    if url is None:
+                        raise AttributeError("Unknown repo name %s, url "
+                                             "must be assigned." % name)
+                config.add_section(name)
+                config.set(name, "name", name)
+                config.set(name, "baseurl", url)
+                config.set(name, "enabled", 1)
+                config.set(name, "gpgcheck", 0)
+
+            path = '/etc/yum.repos.d/virt-test-ci.repo'
+            with open(path, 'wb') as repo_file:
+                config.write(repo_file)
+
+        def _install_pkgs(pkgs):
+            if pkgs:
+                if type(pkgs) is list:
+                    pkgs = ' '.join(pkgs)
+
+            cmd = 'yum -y install ' + pkgs
+            utils.run(cmd)
+
+        def _update_pkgs(pkgs=''):
+            if pkgs:
+                if type(pkgs) is list:
+                    pkgs = ' '.join(pkgs)
+
+            cmd = 'yum -y update ' + pkgs
+            utils.run(cmd)
+
+
+        if self.args.yum_repos:
+            repos = ['epel']
+            repos += re.split('[ ,]', self.args.yum_repos)
+            repo_dict = {}
+            for repo_str in repos:
+                if '|' in repo_str:
+                    repo_name, repo_url = repo_str.split('|')
+                else:
+                    repo_name = repo_str
+                    repo_url = None
+                repo_dict[repo_name] = repo_url
+
+            _setup_repos(repo_dict)
+
+        print "Updating all packages"
+        _update_pkgs()
+
+        if self.args.install_pkgs:
+            pkgs = ['p7zip', 'fakeroot']
+            pkgs += re.split('[ ,]', self.args.install_pkgs)
+            print "Installing packages %s" % ' '.join(pkgs)
+            _install_pkgs(pkgs)
+
 
     def prepare_tests(self, whitelist='whitelist.test',
                       blacklist='blacklist.test'):
@@ -495,6 +568,8 @@ class LibvirtCI():
                 r'vms = %s\n' % vms_string)
 
     def prepare(self):
+        self.prepare_pkgs()
+
         self.prepare_repos()
 
         if self.args.pre_cmd:
