@@ -616,7 +616,7 @@ allow tgtd_t var_lib_t:file { read write getattr open };
             print "Setting up SELinux module %s for RHEL6" % mod_name
 
             mod_path = '/tmp/%s.te' % mod_name
-            with open(mod_path) as fp:
+            with open(mod_path, 'w') as fp:
                 fp.write(rhel6_mod)
             utils.run("checkmodule -M -m -o /tmp/%s.mod /tmp/%s.te" %
                       (mod_name, mod_name))
