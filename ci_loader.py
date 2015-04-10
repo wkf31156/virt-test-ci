@@ -131,11 +131,10 @@ def _retrieve_repos():
 
 
 REPOS = ['autotest', 'virt-test', 'tp-libvirt', 'tp-qemu']
-ENVS = {
-    k[3:].lower(): v
-    for k, v in os.environ.items()
-    if k.startswith('CI_')
-}
+ENVS = {}
+for key, value in os.environ.items():
+    if key.startswith('CI_'):
+        ENVS[key[3:].lower()] = value
 ARGS = _parse_args()
 
 for key, value in ENVS.items():
