@@ -352,7 +352,8 @@ class LibvirtCI():
                     patch_url = ('https://github.com/autotest'
                                  '/%s/pull/%s.patch' % (repo_name, pull_no))
                     patch_file = "/tmp/%s.patch" % pull_no
-                    urllib.urlretrieve(patch_url, patch_file)
+                    with open(patch_file, 'w') as pf:
+                        pf.write(urllib2.urlopen(patch_url).read())
                     with open(patch_file, 'r') as pf:
                         if not pf.read().strip():
                             print 'WARING: empty content for PR #%s' % pull_no
