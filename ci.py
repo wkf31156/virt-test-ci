@@ -613,6 +613,8 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                 print "SELinux module %s already exists. skip setup" % mod_name
                 return
 
+            print "Setting up SELinux module %s for RHEL6" % mod_name
+
             mod_path = '/tmp/%s.te' % mod_name
             with open(mod_path) as fp:
                 fp.write(rhel6_mod)
@@ -623,9 +625,9 @@ allow tgtd_t var_lib_t:file { read write getattr open };
             utils.run("semodule -i /tmp/%s.pp" % mod_name)
 
     def prepare(self):
-        self.prepare_pkgs()
-
         self.prepare_repos()
+        self.prepare_pkgs()
+        self.prepare_selinux()
 
         if self.args.pre_cmd:
             print 'Running command line "%s" before test.' % self.args.pre_cmd
