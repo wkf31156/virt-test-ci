@@ -568,6 +568,60 @@ class LibvirtCI():
                 r'^\s*vms = .*\n',
                 r'vms = %s\n' % vms_string)
 
+    def prepare_selinux(self):
+        rhel6_mod = """
+module local 1.0;
+
+require {
+    type unconfined_java_t;
+    type tmp_t;
+    type svirt_t;
+    type var_lib_t;
+    type iscsid_t;
+    type user_tmp_t;
+    type var_run_t;
+    type tgtd_t;
+    class process transition;
+    class lnk_file read;
+    class sock_file unlink;
+    class file { unlink read lock write getattr open append relabelfrom relabelto };
+    class fifo_file { read write setattr };
+}
+
+
+#============= svirt_t ==============
+allow svirt_t var_lib_t:lnk_file read;
+allow svirt_t tmp_t:lnk_file read;
+
+#============= unconfined_java_t ==============
+allow unconfined_java_t svirt_t:process transition;
+
+#============= iscsid_t ==============
+allow iscsid_t user_tmp_t:fifo_file read;
+allow iscsid_t var_lib_t:file { write append };
+allow iscsid_t var_run_t:file { open write lock };
+
+#============= tgtd_t ==============
+allow tgtd_t var_run_t:sock_file unlink;
+allow tgtd_t var_lib_t:file { read write getattr open };
+"""
+        dist_name, dist_version, dist_codename = platform.dist()
+        if dist_name == 'redhat' and dist_version.startswith('6.'):
+            mod_name = 'rhel6_ci'
+            res = utils.run("semodule -l")
+            if mod_name in res.stdout:
+                print "SELinux module %s already exists. skip setup" % mod_name
+                return
+
+            mod_path = '/tmp/%s.te' % mod_name
+            with open(mod_path) as fp:
+                fp.write(rhel6_mod)
+            utils.run("checkmodule -M -m -o /tmp/%s.mod /tmp/%s.te" %
+                      (mod_name, mod_name))
+            utils.run("semodule_package -o /tmp/%s.pp -m /tmp/%s.mod" %
+                      (mod_name, mod_name))
+            utils.run("semodule -i /tmp/%s.pp" % mod_name)
+
     def prepare(self):
         self.prepare_pkgs()
 
