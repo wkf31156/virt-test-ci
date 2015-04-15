@@ -823,6 +823,9 @@ class LibvirtCI():
         parser.add_option('--post-cmd', dest='post_cmd',
                           action='store', help='Run a command line after '
                           'running the test')
+        parser.add_option('--timeout', dest='timeout',
+                          action='store',
+                          help='Maximum run time for one test case')
         self.args, self.real_args = parser.parse_args()
 
     def prepare_tests(self, whitelist='whitelist.test',
@@ -1113,7 +1116,8 @@ class LibvirtCI():
             cmd += ' --connect-uri %s' % self.args.connect_uri
         status = 'INVALID'
         try:
-            res = utils.run(cmd, timeout=1200, ignore_status=True)
+            res = utils.run(cmd, timeout=int(self.args.timeout),
+                            ignore_status=True)
             lines = res.stdout.splitlines()
             for line in lines:
                 if line.startswith('(1/1)'):
@@ -1121,7 +1125,7 @@ class LibvirtCI():
         except error.CmdError, e:
             res = e.result_obj
             status = 'TIMEOUT'
-            res.duration = 1200
+            res.duration = int(self.args.timeout)
         except Exception, e:
             print "Exception when parsing stdout.\n%s" % res
             raise e
