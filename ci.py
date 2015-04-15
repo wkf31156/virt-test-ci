@@ -302,7 +302,8 @@ class LibvirtCI():
             cmd += ' --connect-uri %s' % self.args.connect_uri
         status = 'INVALID'
         try:
-            res = utils.run(cmd, timeout=1200, ignore_status=True)
+            res = utils.run(cmd, timeout=int(self.args.timeout),
+                            ignore_status=True)
             lines = res.stdout.splitlines()
             for line in lines:
                 if line.startswith('(1/1)'):
@@ -310,7 +311,7 @@ class LibvirtCI():
         except error.CmdError, e:
             res = e.result_obj
             status = 'TIMEOUT'
-            res.duration = 1200
+            res.duration = int(self.args.timeout)
         except Exception, e:
             print "Exception when parsing stdout.\n%s" % res
             raise e
