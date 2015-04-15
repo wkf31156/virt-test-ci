@@ -824,7 +824,7 @@ class LibvirtCI():
                           action='store', help='Run a command line after '
                           'running the test')
         parser.add_option('--timeout', dest='timeout',
-                          action='store',
+                          action='store', default='1200',
                           help='Maximum run time for one test case')
         self.args, self.real_args = parser.parse_args()
 
