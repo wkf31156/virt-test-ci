@@ -708,6 +708,6 @@ allow tgtd_t var_lib_t:file { read write getattr open };
         except Exception:
             traceback.print_exc()
         finally:
-            if not self.args.no_restore_pull:
+            if self.args.restore_pull:
                 self.restore_repos()
             self.report.save(self.args.report, self.args.text_report)

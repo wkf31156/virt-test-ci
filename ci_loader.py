@@ -77,7 +77,11 @@ def _parse_args():
                       action='store_true',
                       help='Merge virt-test pull requests depend on')
     parser.add_option('--no-restore-pull', dest='no_restore_pull',
-                      action='store_true', help='Do not restore repo '
+                      action='store_true', help='This option is deprecated '
+                      'and change to --restore-pull, The default will be not '
+                      'restore pull.')
+    parser.add_option('--restore-pull', dest='restore_pull',
+                      action='store_true', help='Restore repo '
                       'to branch master after test.')
     parser.add_option('--only-change', dest='only_change',
                       action='store_true', help='Only test tp-libvirt '
@@ -119,6 +123,11 @@ def _parse_args():
                       default='1200',
                       help='Maximum time to wait for one test entry')
     args, real_args = parser.parse_args()
+    if args.no_restore_pull:
+        logging.warning(
+            'CI option --no-restore-pull is now deprecated. The default '
+            'behavior is not restoring pulls after test now. You can enable '
+            'restoration by setting --restore-pull')
     return args
 
 
