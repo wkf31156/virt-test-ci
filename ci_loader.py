@@ -5,6 +5,7 @@ import sys
 import shutil
 import logging
 import optparse
+import subprocess
 
 if __name__ != '__main__':
     logging.warning("Can't import ci_loader as a module, exiting.")
@@ -213,4 +214,4 @@ else:
         shutil.rmtree(test_path)
     shutil.copytree('.', test_path)
     os.chdir(test_path)
-    os.system(' '.join(['python'] + sys.argv))
+    subprocess.call(sys.argv)
