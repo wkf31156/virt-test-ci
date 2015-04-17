@@ -1,0 +1,5 @@
+autotest
+virt-test
+tp-libvirt
+tp-qemu
+test_dir

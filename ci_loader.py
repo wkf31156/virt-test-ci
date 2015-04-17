@@ -129,7 +129,7 @@ def _retrieve_repos():
 
         logging.warning("Retrieving %s from %s" % (repo, repo_url))
 
-        os.system('git clone --quiet --depth 1 %s %s --branch %s' %
+        os.system('git clone --quiet %s %s --branch %s' %
                   (repo_url, repo, branch))
 
 
@@ -147,11 +147,12 @@ for key, value in ENVS.items():
 if 'test_path' in ENVS:
     test_path = ENVS['test_path']
 else:
-    test_path = os.getcwd()
+    test_path = os.path.join(os.getcwd(), 'test_dir')
     logging.warning("Environment variable CI_TEST_PATH not set. "
-                    "Test in current directory.")
+                    "Test in %s." % test_path)
 
 if os.getcwd() == test_path:
+    print "--- Testing Phase ---"
     workspace = os.getenv("WORKSPACE")
     if not all([os.path.exists(repo) for repo in REPOS]):
         if not workspace or not all([
@@ -161,7 +162,12 @@ if os.getcwd() == test_path:
         else:
             for repo in REPOS:
                 shutil.copytree(os.path.join(workspace, repo), repo)
-    os.system('cp -r virt-test/* ./')
+    if 'test_path' in ENVS:
+        # Replace .git of CI with virt-test for applying patch on Jenkins
+        os.system('cp -r virt-test/. .')
+    else:
+        # Leave CI .git for local run
+        os.system('cp -r virt-test/* .')
     if not os.path.exists('test-providers.d/downloads/'):
         os.makedirs('test-providers.d/downloads/')
     if not os.path.exists('test-providers.d/downloads/tp-libvirt'):
@@ -175,6 +181,7 @@ if os.getcwd() == test_path:
     logging.warning("Start running libvirt CI in %s" % test_path)
     LibvirtCI(args=ARGS).run()
 else:
+    print "--- Loading Phase ---"
     workspace = os.getenv("WORKSPACE")
     if workspace:
         if workspace != os.getcwd():
@@ -186,6 +193,7 @@ else:
         _retrieve_repos()
     else:
         for repo in REPOS:
+            logging.warning('Updating repo %s' % repo)
             os.chdir(repo)
             os.system('git pull')
             os.chdir('..')
