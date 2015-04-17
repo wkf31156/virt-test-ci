@@ -2,11 +2,13 @@ import os
 import re
 import sys
 import time
+import glob
 import urllib
 import urllib2
 import json
 import fileinput
 import traceback
+import logging
 import platform
 import ConfigParser
 
@@ -279,11 +281,16 @@ class LibvirtCI():
 
     def replace_pattern_in_file(self, file, search_exp, replace_exp):
         prog = re.compile(search_exp)
-        for line in fileinput.input(file, inplace=1):
+        replacements = []
+        for idx, line in enumerate(fileinput.input(file, inplace=1)):
             match = prog.search(line)
             if match:
+                replacements.append((idx, line))
                 line = prog.sub(replace_exp, line)
             sys.stdout.write(line)
+        for idx, line in replacements:
+            print ("%s:%d Replacing '%s' with '%s' in line:\n%s" %
+                   (file, idx, search_exp, replace_exp, line))
 
     def prepare_env(self):
         """
@@ -625,10 +632,52 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                       (mod_name, mod_name))
             utils.run("semodule -i /tmp/%s.pp" % mod_name)
 
+    def prepare_replaces(self):
+        cur_files = []
+        if not self.args.replaces:
+            return
+
+        for line in self.args.replaces.splitlines():
+            if '-->' in line:
+                if not cur_files:
+                    raise ValueError(
+                        "Expect starts with file name ends with ':', "
+                        "but got:\n%s" % line)
+                s_from, s_to = line.split('-->', 1)
+                print s_from, '-->', s_to
+                if ((s_from.strip().startswith('"') and
+                     s_from.strip().endswith('"')) or
+                        (s_from.startswith("'") and
+                         s_from.endswith("'"))):
+                    s_from = s_from.strip()[1:-1]
+                if ((s_to.strip().startswith('"') and
+                     s_to.strip().endswith('"')) or
+                        (s_to.startswith("'") and
+                         s_to.endswith("'"))):
+                    s_to = s_to.strip()[1:-1]
+                print s_from, '-->', s_to
+                for f in cur_files:
+                    if os.path.isfile(f):
+                        self.replace_pattern_in_file(f, s_from, s_to)
+            elif line.strip().endswith(':'):
+                cur_files = glob.glob(line.strip()[:-1])
+                if not cur_files:
+                    raise ValueError(
+                        "Expect a existing file name, "
+                        "but got:\n%s" % line)
+            elif line.strip().startswith('#'):
+                pass
+            else:
+                raise ValueError(
+                    "Expect '-->' in line or line ends with ':', "
+                    "but got:\n%s" % line)
+
     def prepare(self):
         self.prepare_repos()
         self.prepare_pkgs()
         self.prepare_selinux()
+
+        self.prepare_replaces()
 
         if self.args.pre_cmd:
             print 'Running command line "%s" before test.' % self.args.pre_cmd

@@ -123,6 +123,10 @@ def _parse_args():
     parser.add_option('--timeout', dest='timeout', action='store',
                       default='1200',
                       help='Maximum time to wait for one test entry')
+    parser.add_option('--replaces', dest='replaces', action='store',
+                      help='Replace patterns in specified files. This option '
+                      'is only a placeholder, you should set CI_REPLACES env '
+                      'instead.')
     args, real_args = parser.parse_args()
     if args.no_restore_pull:
         logging.warning(
