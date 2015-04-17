@@ -148,6 +148,7 @@ if 'test_path' in ENVS:
     test_path = ENVS['test_path']
 else:
     test_path = os.path.join(os.getcwd(), 'test_dir')
+    os.environ['CI_TEST_PATH'] = test_path
     logging.warning("Environment variable CI_TEST_PATH not set. "
                     "Test in %s." % test_path)
 
