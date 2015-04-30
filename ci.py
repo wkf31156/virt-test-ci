@@ -14,6 +14,7 @@ import ConfigParser
 
 from virttest import data_dir
 from virttest import virsh
+from virttest import defaults
 from virttest import utils_libvirtd
 from virttest.staging import service
 from autotest.client.shared import error
@@ -27,6 +28,9 @@ class LibvirtCI():
 
     def __init__(self, args):
         self.args = args
+        self.default_guest_os_info = defaults.get_default_guest_os_info()
+        self.default_guest_os = self.default_guest_os_info['variant']
+        self.default_guest_asset = self.default_guest_os_info['asset']
 
     def prepare_pkgs(self):
         def _setup_repos(repo_dict):
@@ -510,7 +514,7 @@ class LibvirtCI():
             sys.stdout.flush()
             img_dir = os.path.join(
                 os.path.realpath(data_dir.get_data_dir()),
-                'images/jeos-19-64.qcow2')
+                'images/%s.qcow2' % self.default_guest_asset)
             urllib.urlretrieve(self.args.img_url, img_dir)
             restore_image = False
 
@@ -572,7 +576,8 @@ class LibvirtCI():
 
         if self.args.os_variant:
             self.replace_pattern_in_file(
-                "shared/cfg/guest-os/Linux/JeOS/19.x86_64.cfg",
+                "shared/cfg/guest-os/Linux/JeOS/%s.x86_64.cfg" %
+                self.default_guest_os.split('.')[1],
                 r'os_variant = \S*',
                 r'os_variant = %s' % self.args.os_variant)
 
