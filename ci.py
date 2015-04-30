@@ -63,16 +63,24 @@ class LibvirtCI():
                 if type(pkgs) is list:
                     pkgs = ' '.join(pkgs)
 
-            cmd = 'yum -y install --skip-broken ' + pkgs
-            utils.run(cmd)
+            try:
+                cmd = 'yum -y install --skip-broken ' + pkgs
+                utils.run(cmd)
+            except error.CmdError, e:
+                cmd = 'yum -y install ' + pkgs
+                utils.run(cmd)
 
         def _update_pkgs(pkgs=''):
             if pkgs:
                 if type(pkgs) is list:
                     pkgs = ' '.join(pkgs)
 
-            cmd = 'yum -y update --skip-broken ' + pkgs
-            utils.run(cmd)
+            try:
+                cmd = 'yum -y update --skip-broken ' + pkgs
+                utils.run(cmd)
+            except error.CmdError, e:
+                cmd = 'yum -y update ' + pkgs
+                utils.run(cmd)
 
 
         if self.args.yum_repos:
