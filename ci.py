@@ -92,12 +92,13 @@ class LibvirtCI():
             repos += re.split('[ ,]', self.args.yum_repos)
             repo_dict = {}
             for repo_str in repos:
-                if '|' in repo_str:
-                    repo_name, repo_url = repo_str.split('|')
-                else:
-                    repo_name = repo_str
-                    repo_url = None
-                repo_dict[repo_name] = repo_url
+                if repo_str:
+                    if '|' in repo_str:
+                        repo_name, repo_url = repo_str.split('|')
+                    else:
+                        repo_name = repo_str
+                        repo_url = None
+                    repo_dict[repo_name] = repo_url
             logging.info('Yum repos to setup: %s', repr(repo_dict))
 
             _setup_repos(repo_dict)
