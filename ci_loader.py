@@ -7,10 +7,6 @@ import logging
 import optparse
 import subprocess
 
-if __name__ != '__main__':
-    logging.warning("Can't import ci_loader as a module, exiting.")
-    sys.exit(1)
-
 
 def _parse_args():
     parser = optparse.OptionParser(
@@ -141,81 +137,85 @@ def _retrieve_repos():
         repo_env_name = (repo + '_repo').replace('-', '_')
         repo_url, branch = getattr(ARGS, repo_env_name).split()
 
-        logging.warning("Retrieving %s from %s" % (repo, repo_url))
+        logging.info("Retrieving %s from %s" % (repo, repo_url))
 
         os.system('git clone --quiet %s %s --branch %s' %
                   (repo_url, repo, branch))
 
 
-REPOS = ['autotest', 'virt-test', 'tp-libvirt', 'tp-qemu']
-ENVS = {}
-for key, value in os.environ.items():
-    if key.startswith('CI_'):
-        ENVS[key[3:].lower()] = value
-ARGS = _parse_args()
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
 
-for key, value in ENVS.items():
-    if value and hasattr(ARGS, key):
-        setattr(ARGS, key, value)
+    REPOS = ['autotest', 'virt-test', 'tp-libvirt', 'tp-qemu']
+    ENVS = {}
+    for key, value in os.environ.items():
+        if key.startswith('CI_'):
+            ENVS[key[3:].lower()] = value
+    ARGS = _parse_args()
 
-if 'test_path' in ENVS:
-    test_path = ENVS['test_path']
-else:
-    test_path = os.path.join(os.getcwd(), 'test_dir')
-    os.environ['CI_TEST_PATH'] = test_path
-    logging.warning("Environment variable CI_TEST_PATH not set. "
-                    "Test in %s." % test_path)
+    for key, value in ENVS.items():
+        if value and hasattr(ARGS, key):
+            setattr(ARGS, key, value)
 
-if os.getcwd() == test_path:
-    print "--- Testing Phase ---"
-    workspace = os.getenv("WORKSPACE")
-    if not all([os.path.exists(repo) for repo in REPOS]):
-        if not workspace or not all([
-                os.path.exists(os.path.join(workspace, repo))
-                for repo in REPOS]):
+    if 'test_path' in ENVS:
+        test_path = ENVS['test_path']
+    else:
+        test_path = os.path.join(os.getcwd(), 'test_dir')
+        os.environ['CI_TEST_PATH'] = test_path
+        logging.warning("Environment variable CI_TEST_PATH not set. "
+                        "Test in %s." % test_path)
+
+    if os.getcwd() == test_path:
+        print "--- Testing Phase ---"
+        workspace = os.getenv("WORKSPACE")
+        if not all([os.path.exists(repo) for repo in REPOS]):
+            if not workspace or not all([
+                    os.path.exists(os.path.join(workspace, repo))
+                    for repo in REPOS]):
+                _retrieve_repos()
+            else:
+                for repo in REPOS:
+                    shutil.copytree(os.path.join(workspace, repo), repo)
+        if 'test_path' in ENVS:
+            # Replace .git of CI with virt-test for applying patch on Jenkins
+            os.system('cp -r virt-test/. .')
+        else:
+            # Leave CI .git for local run
+            os.system('cp -r virt-test/* .')
+        if not os.path.exists('test-providers.d/downloads/'):
+            os.makedirs('test-providers.d/downloads/')
+        if not os.path.exists('test-providers.d/downloads/tp-libvirt'):
+            os.symlink('../../tp-libvirt',
+                       'test-providers.d/downloads/io-github-autotest-libvirt')
+        if not os.path.exists('test-providers.d/downloads/tp-qemu'):
+            os.symlink('../../tp-qemu',
+                       'test-providers.d/downloads/io-github-autotest-qemu')
+
+        from ci import LibvirtCI
+        logging.info("Start running libvirt CI in %s" % test_path)
+        LibvirtCI(args=ARGS).run()
+    else:
+        print "--- Loading Phase ---"
+        workspace = os.getenv("WORKSPACE")
+        if workspace:
+            if workspace != os.getcwd():
+                logging.warning('WORKSPACE:%s is not current directory:%s',
+                                workspace, os.getcwd())
+        else:
+            os.environ['WORKSPACE'] = os.getcwd()
+
+        if not all([os.path.exists(repo) for repo in REPOS]):
             _retrieve_repos()
         else:
             for repo in REPOS:
-                shutil.copytree(os.path.join(workspace, repo), repo)
-    if 'test_path' in ENVS:
-        # Replace .git of CI with virt-test for applying patch on Jenkins
-        os.system('cp -r virt-test/. .')
-    else:
-        # Leave CI .git for local run
-        os.system('cp -r virt-test/* .')
-    if not os.path.exists('test-providers.d/downloads/'):
-        os.makedirs('test-providers.d/downloads/')
-    if not os.path.exists('test-providers.d/downloads/tp-libvirt'):
-        os.symlink('../../tp-libvirt',
-                   'test-providers.d/downloads/io-github-autotest-libvirt')
-    if not os.path.exists('test-providers.d/downloads/tp-qemu'):
-        os.symlink('../../tp-qemu',
-                   'test-providers.d/downloads/io-github-autotest-qemu')
+                logging.info('Updating repo %s' % repo)
+                os.chdir(repo)
+                os.system('git pull')
+                os.chdir('..')
 
-    from ci import LibvirtCI
-    logging.warning("Start running libvirt CI in %s" % test_path)
-    LibvirtCI(args=ARGS).run()
-else:
-    print "--- Loading Phase ---"
-    workspace = os.getenv("WORKSPACE")
-    if workspace:
-        if workspace != os.getcwd():
-            logging.warning('')
-    else:
-        os.environ['WORKSPACE'] = os.getcwd()
-
-    if not all([os.path.exists(repo) for repo in REPOS]):
-        _retrieve_repos()
-    else:
-        for repo in REPOS:
-            logging.warning('Updating repo %s' % repo)
-            os.chdir(repo)
-            os.system('git pull')
-            os.chdir('..')
-
-    if os.path.exists(test_path):
-        logging.warning("Path %s exists. Cleaning up...", test_path)
-        shutil.rmtree(test_path)
-    shutil.copytree('.', test_path)
-    os.chdir(test_path)
-    subprocess.call(sys.argv)
+        if os.path.exists(test_path):
+            logging.info("Path %s exists. Cleaning up...", test_path)
+            shutil.rmtree(test_path)
+        shutil.copytree('.', test_path)
+        os.chdir(test_path)
+        subprocess.call(sys.argv)

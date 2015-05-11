@@ -98,6 +98,7 @@ class LibvirtCI():
                     repo_name = repo_str
                     repo_url = None
                 repo_dict[repo_name] = repo_url
+            logging.info('Yum repos to setup: %s', repr(repo_dict))
 
             _setup_repos(repo_dict)
 
