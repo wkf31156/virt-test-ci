@@ -144,7 +144,8 @@ def _retrieve_repos():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s %(levelname)8s|%(message)s')
 
     REPOS = ['autotest', 'virt-test', 'tp-libvirt', 'tp-qemu']
     ENVS = {}
@@ -166,7 +167,7 @@ if __name__ == '__main__':
                         "Test in %s." % test_path)
 
     if os.getcwd() == test_path:
-        print "--- Testing Phase ---"
+        logging.info("--- Testing Phase ---")
         workspace = os.getenv("WORKSPACE")
         if not all([os.path.exists(repo) for repo in REPOS]):
             if not workspace or not all([
@@ -195,7 +196,7 @@ if __name__ == '__main__':
         logging.info("Start running libvirt CI in %s" % test_path)
         LibvirtCI(args=ARGS).run()
     else:
-        print "--- Loading Phase ---"
+        logging.info("--- Loading Phase ---")
         workspace = os.getenv("WORKSPACE")
         if workspace:
             if workspace != os.getcwd():

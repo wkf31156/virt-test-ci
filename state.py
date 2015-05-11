@@ -1,5 +1,6 @@
 import re
 import os
+import logging
 import difflib
 import tempfile
 import traceback
@@ -459,7 +460,7 @@ class MountState(State):
         for line in lines:
             values = line.split()
             if len(values) != 6:
-                print 'Warning: Error parsing mountpoint: %s' % line
+                logging.warning('Error parsing mountpoint: %s', line)
                 continue
             keys = ['src', 'mount_point', 'fstype', 'options', 'dump', 'order']
             mount_entry = dict(zip(keys, values))

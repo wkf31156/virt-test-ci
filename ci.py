@@ -52,6 +52,7 @@ class LibvirtCI():
                     if url is None:
                         raise AttributeError("Unknown repo name %s, url "
                                              "must be assigned." % name)
+                logging.info("Setting up repo '%s' from '%s'", name, url)
                 config.add_section(name)
                 config.set(name, "name", name)
                 config.set(name, "baseurl", url)
@@ -69,8 +70,11 @@ class LibvirtCI():
 
             try:
                 cmd = 'yum -y install --skip-broken ' + pkgs
+                logging.info("Installing all packages with '%s'", cmd)
                 utils.run(cmd)
             except error.CmdError, e:
+                logging.info(
+                    "Failed installing: %s, trying with out --skip-broken", e)
                 cmd = 'yum -y install ' + pkgs
                 utils.run(cmd)
 
@@ -81,8 +85,11 @@ class LibvirtCI():
 
             try:
                 cmd = 'yum -y update --skip-broken ' + pkgs
+                logging.info("Updating all packages with '%s'", cmd)
                 utils.run(cmd)
             except error.CmdError, e:
+                logging.info(
+                    "Failed updating: %s, trying with out --skip-broken", e)
                 cmd = 'yum -y update ' + pkgs
                 utils.run(cmd)
 
@@ -99,17 +106,14 @@ class LibvirtCI():
                         repo_name = repo_str
                         repo_url = None
                     repo_dict[repo_name] = repo_url
-            logging.info('Yum repos to setup: %s', repr(repo_dict))
 
             _setup_repos(repo_dict)
 
-        print "Updating all packages"
         _update_pkgs()
 
         if self.args.install_pkgs:
             pkgs = ['p7zip', 'fakeroot']
             pkgs += re.split('[ ,]', self.args.install_pkgs)
-            print "Installing packages %s" % ' '.join(pkgs)
             _install_pkgs(pkgs)
 
 
@@ -274,7 +278,7 @@ class LibvirtCI():
     def bootstrap(self):
         from virttest import bootstrap
 
-        print 'Bootstrapping'
+        logging.info('Bootstrapping')
         sys.stdout.flush()
 
         test_dir = data_dir.get_backend_dir('libvirt')
@@ -303,8 +307,8 @@ class LibvirtCI():
                 line = prog.sub(replace_exp, line)
             sys.stdout.write(line)
         for idx, line in replacements:
-            print ("%s:%d Replacing '%s' with '%s' in line:\n%s" %
-                   (file, idx, search_exp, replace_exp, line))
+            logging.info("%s:%d Replacing '%s' with '%s' in line:\n%s",
+                         file, idx, search_exp, replace_exp, line)
 
     def prepare_env(self):
         """
@@ -334,7 +338,7 @@ class LibvirtCI():
             status = 'TIMEOUT'
             res.duration = int(self.args.timeout)
         except Exception, e:
-            print "Exception when parsing stdout.\n%s" % res
+            logging.error("Exception when parsing stdout.\n%s", res)
             raise e
 
         os.chdir(data_dir.get_root_dir())  # Check PWD
@@ -366,7 +370,7 @@ class LibvirtCI():
             cmd = 'git checkout -b %s' % branch_name
             res = utils.run(cmd, ignore_status=True)
             if res.exit_status:
-                print res
+                logging.error(res)
                 raise Exception('Failed to create branch %s' % branch_name)
 
             for pull_no in pull_nos:
@@ -378,14 +382,13 @@ class LibvirtCI():
                         pf.write(urllib2.urlopen(patch_url).read())
                     with open(patch_file, 'r') as pf:
                         if not pf.read().strip():
-                            print 'WARING: empty content for PR #%s' % pull_no
+                            logging.waring('empty content for PR #%s', pull_no)
                     try:
-                        print 'Patching %s PR #%s' % (repo_name, pull_no)
+                        logging.info('Patching %s PR #%s', repo_name, pull_no)
                         cmd = 'git am -3 %s' % patch_file
                         res = utils.run(cmd)
                     except error.CmdError, e:
-                        print e
-                        raise Exception('Failed applying patch %s.' % pull_no)
+                        raise Exception('Failed applying patch %s: %s' % (pull_no, e))
                     finally:
                         os.remove(patch_file)
             return branch_name
@@ -394,8 +397,7 @@ class LibvirtCI():
             cmd = 'git diff master --name-only'
             res = utils.run(cmd, ignore_status=True)
             if res.exit_status:
-                print res
-                raise Exception("Failed to get diff info against master")
+                raise Exception("Failed to get diff info against master:\n%s", res)
 
             return res.stdout.strip().splitlines()
 
@@ -512,7 +514,7 @@ class LibvirtCI():
     def prepare_vm(self):
         restore_image = True
         if self.args.img_url:
-            print 'Downloading image from %s.' % self.args.img_url
+            logging.info('Downloading image from %s.', self.args.img_url)
             sys.stdout.flush()
             img_dir = os.path.join(
                 os.path.realpath(data_dir.get_data_dir()),
@@ -523,7 +525,7 @@ class LibvirtCI():
         if self.args.retain_vm:
             return
 
-        print 'Removing VM\n',  # TODO: use virt-test api remove VM
+        logging.info('Removing VM\n')
         sys.stdout.flush()
         if self.args.connect_uri:
             virsh.destroy('virt-tests-vm1',
@@ -542,7 +544,7 @@ class LibvirtCI():
                 virsh.destroy(vm, ignore_status=True)
                 virsh.undefine(vm, '--snapshots-metadata', ignore_status=True)
 
-        print 'Installing VM',
+        logging.info('Installing VM')
         sys.stdout.flush()
         if 'lxc' in self.args.connect_uri:
             cmd = ('virt-install --connect=lxc:/// --name virt-tests-vm1 '
@@ -633,10 +635,10 @@ allow tgtd_t var_lib_t:file { read write getattr open };
             mod_name = 'rhel6_ci'
             res = utils.run("semodule -l")
             if mod_name in res.stdout:
-                print "SELinux module %s already exists. skip setup" % mod_name
+                logging.info("SELinux module %s already exists. skip setup", mod_name)
                 return
 
-            print "Setting up SELinux module %s for RHEL6" % mod_name
+            logging.info("Setting up SELinux module %s for RHEL6", mod_name)
 
             mod_path = '/tmp/%s.te' % mod_name
             with open(mod_path, 'w') as fp:
@@ -659,7 +661,6 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                         "Expect starts with file name ends with ':', "
                         "but got:\n%s" % line)
                 s_from, s_to = line.split('-->', 1)
-                print s_from, '-->', s_to
                 if ((s_from.strip().startswith('"') and
                      s_from.strip().endswith('"')) or
                         (s_from.startswith("'") and
@@ -670,7 +671,7 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                         (s_to.startswith("'") and
                          s_to.endswith("'"))):
                     s_to = s_to.strip()[1:-1]
-                print s_from, '-->', s_to
+                logging.info("Replacing '%s' to '%s'", s_from, '-->', s_to)
                 for f in cur_files:
                     if os.path.isfile(f):
                         self.replace_pattern_in_file(f, s_from, s_to)
@@ -695,11 +696,9 @@ allow tgtd_t var_lib_t:file { read write getattr open };
         self.prepare_replaces()
 
         if self.args.pre_cmd:
-            print 'Running command line "%s" before test.' % self.args.pre_cmd
+            logging.info('Running command line "%s" before test.', self.args.pre_cmd)
             res = utils.run(self.args.pre_cmd, ignore_status=True)
-            print 'Result:'
-            for line in str(res).splitlines():
-                print line
+            logging.info('Result:\n%s', res)
 
         self.bootstrap()
 
@@ -708,7 +707,7 @@ allow tgtd_t var_lib_t:file { read write getattr open };
         self.report = Report(self.args.fail_diff)
         if not self.tests:
             self.report.update("", "no_test.no_test", "", "", "", "", 0)
-            print "No test to run!"
+            logging.warning("No test to run!")
             exit(0)
 
         utils_libvirtd.Libvirtd().restart()
@@ -718,7 +717,7 @@ allow tgtd_t var_lib_t:file { read write getattr open };
 
         self.reasons = {}
         if self.args.reason_url:
-            print 'Downloading reason from %s.' % self.args.reason_url
+            logging.info('Downloading reason from %s', self.args.reason_url)
             sys.stdout.flush()
             reason_u = urllib2.urlopen(self.args.reason_url)
             self.reasons = json.load(reason_u)
@@ -763,12 +762,10 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                                    res.stderr, err_msg, res.duration)
                 self.report.save(self.args.report, self.args.text_report)
             if self.args.post_cmd:
-                print ('Running command line "%s" after test.' %
-                       self.args.post_cmd)
+                logging.info('Running command line "%s" after test.',
+                             self.args.post_cmd)
                 res = utils.run(self.args.post_cmd, ignore_status=True)
-                print 'Result:'
-                for line in str(res).splitlines():
-                    print line
+                logging.info('Result:\n%s', res)
         except Exception:
             traceback.print_exc()
         finally:
