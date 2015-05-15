@@ -28,6 +28,7 @@ class LibvirtCI():
 
     def __init__(self, args):
         self.args = args
+        print "The current test parameters: %s" % args
         self.default_guest_os_info = defaults.get_default_guest_os_info()
         self.default_guest_os = self.default_guest_os_info['variant']
         self.default_guest_asset = self.default_guest_os_info['asset']
@@ -93,7 +94,6 @@ class LibvirtCI():
                 cmd = 'yum -y update ' + pkgs
                 utils.run(cmd)
 
-
         if self.args.yum_repos:
             repos = ['epel']
             repos += re.split('[ ,]', self.args.yum_repos)
@@ -115,7 +115,6 @@ class LibvirtCI():
             pkgs = ['p7zip', 'fakeroot']
             pkgs += re.split('[ ,]', self.args.install_pkgs)
             _install_pkgs(pkgs)
-
 
     def prepare_tests(self, whitelist='whitelist.test',
                       blacklist='blacklist.test'):
@@ -146,7 +145,8 @@ class LibvirtCI():
             if type(self.onlys) == set and not self.onlys:
                 return []
 
-            cmd = './run -t libvirt --list-tests'
+            cmd = './run -t %s --list-tests' % self.args.subtest
+            print "Cmdline of listing current test cases: %s" % cmd
             if self.args.connect_uri:
                 cmd += ' --connect-uri %s' % self.args.connect_uri
             if self.nos:
@@ -177,13 +177,15 @@ class LibvirtCI():
             """
             Transform the content of a change file to a only set.
             """
+            tc = '%s/tests/(cfg|src)/(.*).(cfg|py)' % self.args.subtest
             onlys = set()
             for line in change_list:
                 filename = line.strip()
-                res = re.match('libvirt/tests/(cfg|src)/(.*).(cfg|py)',
-                               filename)
+                res = re.match(tc, filename)
                 if res:
-                    cfg_path = 'libvirt/tests/cfg/%s.cfg' % res.groups()[1]
+                    cfg_path = '%s/tests/cfg/%s.cfg' % (self.args.subtest,
+                                                        res.groups()[1])
+                    print "Current test configuration: %s" % cfg_path
                     tp_dir = data_dir.get_test_provider_dir(
                         'io-github-autotest-libvirt')
                     cfg_path = os.path.join(tp_dir, cfg_path)
@@ -321,8 +323,9 @@ class LibvirtCI():
         """
         img_str = '' if restore_image else 'k'
         down_str = '' if restore_image else '--no-downloads'
-        cmd = ('./run -v%st libvirt --keep-image-between-tests %s'
-               ' --tests %s' % (img_str, down_str, test))
+        cmd = ('./run -v%st %s --keep-image-between-tests %s'
+               ' --tests %s' % (img_str, self.args.subtest,
+                                down_str, test))
         if self.args.connect_uri:
             cmd += ' --connect-uri %s' % self.args.connect_uri
         status = 'INVALID'
@@ -585,7 +588,7 @@ class LibvirtCI():
                 r'os_variant = \S*',
                 r'os_variant = %s' % self.args.os_variant)
 
-        if self.args.additional_vms:
+        if self.args.additional_vms and self.args.subtest != 'v2v':
             vms_string = "virt-tests-vm1 " + " ".join(
                 self.args.additional_vms.split(','))
             self.replace_pattern_in_file(
@@ -671,7 +674,7 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                         (s_to.startswith("'") and
                          s_to.endswith("'"))):
                     s_to = s_to.strip()[1:-1]
-                logging.info("Replacing '%s' to '%s'", s_from, '-->', s_to)
+                logging.info("Replacing '%s' --> '%s'", s_from, s_to)
                 for f in cur_files:
                     if os.path.isfile(f):
                         self.replace_pattern_in_file(f, s_from, s_to)
@@ -722,7 +725,8 @@ allow tgtd_t var_lib_t:file { read write getattr open };
             reason_u = urllib2.urlopen(self.args.reason_url)
             self.reasons = json.load(reason_u)
 
-        self.prepare_vm()
+        if self.args.subtest != 'v2v':
+            self.prepare_vm()
 
         self.states = States()
         self.states.backup()

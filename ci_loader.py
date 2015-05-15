@@ -111,6 +111,9 @@ def _parse_args():
     parser.add_option('--tp-qemu-repo', dest='tp_qemu_repo', action='store',
                       default='https://github.com/autotest/tp-qemu.git master',
                       help='URL and branch for tp-qemu repo')
+    parser.add_option('--tp-libvirt-subtest', dest='subtest', action='store',
+                      default='libvirt',
+                      help='Subtest for tp-libvirt, e.g. libguestfs, libvirt, lvsb and v2v, libvirt is default')
     parser.add_option('--yum-repos', dest='yum_repos', action='store',
                       default='', help='YUM repos setup before test')
     parser.add_option('--install-pkgs', dest='install_pkgs', action='store',
@@ -153,6 +156,7 @@ if __name__ == '__main__':
         if key.startswith('CI_'):
             ENVS[key[3:].lower()] = value
     ARGS = _parse_args()
+    logging.debug("The current test parameters: \n%s", ARGS)
 
     for key, value in ENVS.items():
         if value and hasattr(ARGS, key):
