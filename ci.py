@@ -28,7 +28,6 @@ class LibvirtCI():
 
     def __init__(self, args):
         self.args = args
-        print "The current test parameters: %s" % args
         self.default_guest_os_info = defaults.get_default_guest_os_info()
         self.default_guest_os = self.default_guest_os_info['variant']
         self.default_guest_asset = self.default_guest_os_info['asset']
