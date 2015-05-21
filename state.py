@@ -13,6 +13,7 @@ from virttest.utils_misc import mount, umount
 
 
 class States():
+
     def __init__(self):
         self.states = []
         for name, obj in globals().items():
@@ -528,7 +529,10 @@ class DirState(State):
                 if os.path.isfile(fpath):
                     os.remove(fpath)
                 elif os.path.isdir(fpath):
-                    shutil.rmtree(fpath)
+                    if os.path.ismount(fpath):
+                        os.system('umount -l %s' % fpath)
+                    else:
+                        shutil.rmtree(fpath)
         deleted_files = set(bak) - set(cur)
         if deleted_files:
             for fname in deleted_files:
