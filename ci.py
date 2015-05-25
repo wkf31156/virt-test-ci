@@ -652,6 +652,16 @@ allow tgtd_t var_lib_t:file { read write getattr open };
             utils.run("semodule -i /tmp/%s.pp" % mod_name)
 
     def prepare_replaces(self):
+        def _repl(match):
+            env = match.groups()[1]
+            if env.upper() in os.environ:
+                return os.environ[env.upper()]
+            elif env in os.environ:
+                return os.environ[env]
+            else:
+                logging.warning('Env %s not found while replacing', env)
+                return ''
+
         cur_files = []
         if not self.args.replaces:
             return
@@ -673,6 +683,11 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                         (s_to.startswith("'") and
                          s_to.endswith("'"))):
                     s_to = s_to.strip()[1:-1]
+
+                # Replace placeholders '{{env_name}}' to environment content
+                s_from = re.sub('({{)(.*?)(}})', _repl, s_from)
+                s_to = re.sub('({{)(.*?)(}})', _repl, s_to)
+
                 logging.info("Replacing '%s' --> '%s'", s_from, s_to)
                 for f in cur_files:
                     if os.path.isfile(f):
