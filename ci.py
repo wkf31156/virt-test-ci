@@ -277,25 +277,26 @@ class LibvirtCI():
         return class_name, test_name
 
     def bootstrap(self):
+        class _Options(object):
+            pass
+
         from virttest import bootstrap
 
         logging.info('Bootstrapping')
         sys.stdout.flush()
 
-        test_dir = data_dir.get_backend_dir('libvirt')
-        default_userspace_paths = ["/usr/bin/qemu-kvm", "/usr/bin/qemu-img"]
-        base_dir = data_dir.get_data_dir()
-        bootstrap.bootstrap(test_name='libvirt', test_dir=test_dir,
-                            base_dir=base_dir,
-                            default_userspace_paths=default_userspace_paths,
-                            check_modules=[],
-                            online_docs_url=None,
-                            interactive=False,
-                            selinux=True,
-                            restore_image=False,
-                            verbose=True,
-                            update_providers=False,
-                            force_update=True)
+        options = _Options()
+        options.vt_type = 'libvirt'
+        options.vt_selinux_setup = True
+        options.vt_no_downloads = True
+        options.vt_keep_image = True
+        options.vt_verbose = True
+        options.vt_update_providers = False
+        options.vt_update_config = True
+        options.vt_guest_os = None
+        options.vt_config = None
+
+        bootstrap.bootstrap(options=options, interactive=False)
         os.chdir(data_dir.get_root_dir())
 
     def replace_pattern_in_file(self, file, search_exp, replace_exp):
