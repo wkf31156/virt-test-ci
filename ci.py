@@ -31,6 +31,7 @@ class LibvirtCI():
         self.default_guest_os_info = defaults.get_default_guest_os_info()
         self.default_guest_os = self.default_guest_os_info['variant']
         self.default_guest_asset = self.default_guest_os_info['asset']
+        self.host_arch = utils.get_arch()
 
     def prepare_pkgs(self):
         def _setup_repos(repo_dict):
@@ -45,7 +46,8 @@ class LibvirtCI():
                     ver_major = vers[0]
 
                 if name == 'epel':
-                    if dist_name == 'redhat':
+                    epel_arch = ['x86_64', 'ppc64', 'i386']
+                    if dist_name == 'redhat' and self.host_arch in epel_arch:
                         url = ('http://download.fedoraproject.org/pub/'
                                'epel/%s/$basearch' % ver_major)
                 else:
