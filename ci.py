@@ -423,6 +423,18 @@ class LibvirtCI():
                     logging.warning("Skip patch %s as only file is supported",
                                     patch_file)
 
+        def get_abspath(file_path):
+            """
+            get abspath of given file
+
+            param file_path: iteratable item with file path
+            return: abspath list
+            """
+            path_list = []
+            for path_ in file_path:
+                path_list.append(os.path.abspath(path_))
+            return path_list
+
         def file_changed(repo_name):
             cmd = 'git diff master --name-only'
             res = utils.run(cmd, ignore_status=True)
@@ -512,7 +524,8 @@ class LibvirtCI():
 
         if patch_virt_tests:
             os.chdir(data_dir.get_root_dir())
-            merge_patch(patch_virt_tests)
+            patch_files = get_abspath(patch_virt_tests)
+            merge_patch(patch_files)
             if self.args.only_change:
                 self.virt_file_changed = file_changed("virt-test")
 
@@ -524,9 +537,11 @@ class LibvirtCI():
                 self.libvirt_file_changed = file_changed("tp-libvirt")
 
         if patch_libvirts:
+            os.chdir(data_dir.get_root_dir())
+            patch_files = get_abspath(patch_libvirts)
             os.chdir(data_dir.get_test_provider_dir(
                 'io-github-autotest-libvirt'))
-            merge_patch(patch_libvirts)
+            merge_patch(patch_files)
             if self.args.only_change:
                 self.libvirt_file_changed = file_changed("tp-libvirt")
 
