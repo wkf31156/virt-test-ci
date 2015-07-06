@@ -398,6 +398,31 @@ class LibvirtCI():
                         os.remove(patch_file)
             return branch_name
 
+        def merge_patch(patch_files):
+            """
+            Merge patch on current work dir repo
+
+            param patch_files: iteratable item with patch file path
+
+            patch_file path could be absolute path or relative path base on
+            current work dir
+            """
+            for patch_file in patch_files:
+                if os.path.isfile(patch_file):
+                    cmd = "git am -3 %s" % patch_file
+                    try:
+                        utils.run(cmd)
+                    except Exception:
+                        try:
+                            cmd = "patch -p1 < %s" % patch_file
+                            utils.run(cmd)
+                        except Exception:
+                            logging.error("Failed to apply %s, ignore the "
+                                          "patch file.", patch_file)
+                else:
+                    logging.warning("Skip patch %s as only file is supported",
+                                    patch_file)
+
         def file_changed(repo_name):
             cmd = 'git diff master --name-only'
             res = utils.run(cmd, ignore_status=True)
@@ -461,6 +486,8 @@ class LibvirtCI():
 
         pull_libvirts = set()
         pull_virt_tests = set()
+        patch_virt_tests = set()
+        patch_libvirts = set()
 
         if self.args.pull_libvirt:
             pull_libvirts = set(self.args.pull_libvirt.split(','))
@@ -471,9 +498,21 @@ class LibvirtCI():
         if self.args.pull_virt_test:
             pull_virt_tests |= set(self.args.pull_virt_test.split(','))
 
+        if self.args.virt_test_patch:
+            patch_virt_tests |= set(self.args.virt_test_patch.split(','))
+
+        if self.args.libvirt_patch:
+            patch_libvirts = set(self.args.libvirt_patch.split(','))
+
         if pull_virt_tests:
             os.chdir(data_dir.get_root_dir())
             self.virt_branch_name = merge_pulls("virt-test", pull_virt_tests)
+            if self.args.only_change:
+                self.virt_file_changed = file_changed("virt-test")
+
+        if patch_virt_tests:
+            os.chdir(data_dir.get_root_dir())
+            merge_patch(patch_virt_tests)
             if self.args.only_change:
                 self.virt_file_changed = file_changed("virt-test")
 
@@ -481,6 +520,13 @@ class LibvirtCI():
             os.chdir(data_dir.get_test_provider_dir(
                 'io-github-autotest-libvirt'))
             self.libvirt_branch_name = merge_pulls("tp-libvirt", pull_libvirts)
+            if self.args.only_change:
+                self.libvirt_file_changed = file_changed("tp-libvirt")
+
+        if patch_libvirts:
+            os.chdir(data_dir.get_test_provider_dir(
+                'io-github-autotest-libvirt'))
+            merge_patch(patch_libvirts)
             if self.args.only_change:
                 self.libvirt_file_changed = file_changed("tp-libvirt")
 
