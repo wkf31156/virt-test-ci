@@ -62,11 +62,23 @@ def _parse_args():
                       help='Merge specified virt-test pull requests. '
                       'Multiple pull requests are separated by ",", '
                       'example: --pull-virt-test 175,183')
+    parser.add_option('--virt-test-patch', dest='virt_test_patch',
+                      action='store', default='',
+                      help='Merge specified virt-test patch files. '
+                      'Multiple patch files are separated by ",", '
+                      'example: --virt-test-patch patch/path/file.patch0,'
+                      'patch/path/file.patch1')
     parser.add_option('--pull-libvirt', dest='pull_libvirt',
                       action='store', default='',
                       help='Merge specified tp-libvirt pull requests. '
                       'Multiple pull requests are separated by ",", '
                       'example: --pull-libvirt 175,183')
+    parser.add_option('--libvirt-patch', dest='libvirt_patch',
+                      action='store', default='',
+                      help='Merge specified tp-libvirt patch files. '
+                      'Multiple patch files are separated by ",", '
+                      'example: --libvirt-patch patch/path/file.patch0,'
+                      'patch/path/file.patch1')
     parser.add_option('--reason-url', dest='reason_url', action='store',
                       default='',
                       help='Specify a URL to a JSON reason file')
