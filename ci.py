@@ -619,7 +619,10 @@ class LibvirtCI():
             xml_path = '/tmp/virt-test-ci.xml'
             with open(xml_path, 'w') as fp:
                 fp.write(domxml)
-            virsh.define(xml_path)
+            res = virsh.define(xml_path)
+            if res.exit_status:
+                logging.error('Define command result:\n%s', res)
+                raise Exception('Failed to define domain for XML:\n%s' % domxml)
             try:
                 os.remove(xml_path)
             except OSError:
