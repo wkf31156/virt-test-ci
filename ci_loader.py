@@ -138,6 +138,8 @@ def _parse_args():
                       help='Replace patterns in specified files. This option '
                       'is only a placeholder, you should set CI_REPLACES env '
                       'instead.')
+    parser.add_option('--domxml', dest='domxml', action='store',
+                      help='Customized domain XML')
     args, real_args = parser.parse_args()
     if args.no_restore_pull:
         logging.warning(

@@ -612,21 +612,34 @@ class LibvirtCI():
 
         logging.info('Installing VM')
         sys.stdout.flush()
-        if 'lxc' in self.args.connect_uri:
-            cmd = ('virt-install --connect=lxc:/// --name virt-tests-vm1 '
-                   '--ram 500 --noautoconsole')
+        if self.args.domxml:
+            domxml = re.sub('(?<=<name>).*(?=</name>)',
+                            'virt-tests-vm1',
+                            self.args.domxml)
+            xml_path = '/tmp/virt-test-ci.xml'
+            with open(xml_path, 'w') as fp:
+                fp.write(domxml)
+            virsh.define()
             try:
-                utils.run(cmd)
-            except error.CmdError, e:
-                raise Exception('   ERROR: Failed to install guest \n %s' % e)
+                os.remove(xml_path)
+            except OSError:
+                pass
         else:
-            status, res, err_msg, result_line = self.run_test(
-                'unattended_install.import.import.default_install.aio_native',
-                restore_image=restore_image)
-            if 'PASS' not in status:
-                raise Exception('   ERROR: Failed to install guest \n %s' %
-                                res.stderr)
-            virsh.destroy('virt-tests-vm1')
+            if 'lxc' in self.args.connect_uri:
+                cmd = ('virt-install --connect=lxc:/// --name virt-tests-vm1 '
+                       '--ram 500 --noautoconsole')
+                try:
+                    utils.run(cmd)
+                except error.CmdError, e:
+                    raise Exception('   ERROR: Failed to install guest \n %s' % e)
+            else:
+                status, res, err_msg, result_line = self.run_test(
+                    'unattended_install.import.import.default_install.aio_native',
+                    restore_image=restore_image)
+                if 'PASS' not in status:
+                    raise Exception('   ERROR: Failed to install guest \n %s' %
+                                    res.stderr)
+                virsh.destroy('virt-tests-vm1')
         if self.args.additional_vms:
             for vm in self.args.additional_vms.split(','):
                 cmd = 'virt-clone '
