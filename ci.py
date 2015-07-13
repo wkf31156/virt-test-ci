@@ -619,7 +619,7 @@ class LibvirtCI():
             xml_path = '/tmp/virt-test-ci.xml'
             with open(xml_path, 'w') as fp:
                 fp.write(domxml)
-            virsh.define()
+            virsh.define(xml_path)
             try:
                 os.remove(xml_path)
             except OSError:
