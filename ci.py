@@ -97,7 +97,7 @@ class LibvirtCI():
 
         if self.args.yum_repos:
             repos = ['epel']
-            repos += re.split('[ ,]', self.args.yum_repos)
+            repos += self.split_string(self.args.yum_repos)
             repo_dict = {}
             for repo_str in repos:
                 if repo_str:
@@ -115,7 +115,7 @@ class LibvirtCI():
 
         if self.args.install_pkgs:
             pkgs = ['p7zip', 'fakeroot']
-            pkgs += re.split('[ ,]', self.args.install_pkgs)
+            pkgs += self.split_string(self.args.install_pkgs)
             _install_pkgs(pkgs)
 
     def prepare_tests(self, whitelist='whitelist.test',
@@ -204,11 +204,11 @@ class LibvirtCI():
         self.onlys = None
 
         if self.args.only:
-            self.onlys = set(self.args.only.split(','))
+            self.onlys = set(self.split_string(self.args.only))
 
         if self.args.slice:
             slices = {}
-            slice_opts = self.args.slice.split(',')
+            slice_opts = self.split_string(self.args.slice)
             slice_url = slice_opts[0]
             slice_opts = slice_opts[1:]
             config = urllib2.urlopen(slice_url)
@@ -226,7 +226,7 @@ class LibvirtCI():
                         self.nos |= set(slices[key].split(','))
 
         if self.args.no:
-            self.nos |= set(self.args.no.split(','))
+            self.nos |= set(self.split_string(self.args.no))
         if self.args.only_change:
             if self.onlys is not None:
                 self.onlys &= change_to_only(self.libvirt_file_changed)
@@ -253,6 +253,12 @@ class LibvirtCI():
             exit(0)
 
         self.tests = tests
+
+    def split_string(self, string):
+        """
+        Split a string from ',', spaces, or newlines to a list
+        """
+        return [e.strip() for e in re.split('[ ,\n]', string) if e.strip()]
 
     def split_name(self, name):
         """
@@ -503,19 +509,19 @@ class LibvirtCI():
         patch_libvirts = set()
 
         if self.args.pull_libvirt:
-            pull_libvirts = set(self.args.pull_libvirt.split(','))
+            pull_libvirts = set(self.split_string(self.args.pull_libvirt))
 
         if self.args.with_dependence:
             pull_virt_tests = libvirt_pr_dep(pull_libvirts)
 
         if self.args.pull_virt_test:
-            pull_virt_tests |= set(self.args.pull_virt_test.split(','))
+            pull_virt_tests |= set(self.split_string(self.args.pull_virt_test))
 
         if self.args.virt_test_patch:
-            patch_virt_tests |= set(self.args.virt_test_patch.split(','))
+            patch_virt_tests |= set(self.split_string(self.args.virt_test_patch))
 
         if self.args.libvirt_patch:
-            patch_libvirts = set(self.args.libvirt_patch.split(','))
+            patch_libvirts = set(self.split_string(self.args.libvirt_patch))
 
         if pull_virt_tests:
             os.chdir(data_dir.get_root_dir())
@@ -607,7 +613,7 @@ class LibvirtCI():
             virsh.undefine('virt-tests-vm1', '--snapshots-metadata',
                            ignore_status=True)
         if self.args.additional_vms:
-            for vm in self.args.additional_vms.split(','):
+            for vm in self.split_string(self.args.additional_vms):
                 virsh.destroy(vm, ignore_status=True)
                 virsh.undefine(vm, '--snapshots-metadata', ignore_status=True)
 
@@ -645,7 +651,7 @@ class LibvirtCI():
                                     res.stderr)
                 virsh.destroy('virt-tests-vm1')
         if self.args.additional_vms:
-            for vm in self.args.additional_vms.split(','):
+            for vm in self.split_string(self.args.additional_vms):
                 cmd = 'virt-clone '
                 if self.args.connect_uri:
                     cmd += '--connect=%s ' % self.args.connect_uri
@@ -670,7 +676,7 @@ class LibvirtCI():
 
         if self.args.additional_vms and self.args.subtest != 'v2v':
             vms_string = "virt-tests-vm1 " + " ".join(
-                self.args.additional_vms.split(','))
+                self.split_string(self.args.additional_vms))
             self.replace_pattern_in_file(
                 "shared/cfg/base.cfg",
                 r'^\s*vms = .*\n',
