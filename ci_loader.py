@@ -131,6 +131,8 @@ def _parse_args():
     parser.add_option('--install-pkgs', dest='install_pkgs', action='store',
                       default='',
                       help='Packages should be installed before test')
+    parser.add_option('--update-all-pkgs', dest='update_all_pkgs', action='store_true',
+                      help='Update all packages before test')
     parser.add_option('--timeout', dest='timeout', action='store',
                       default='1200',
                       help='Maximum time to wait for one test entry')

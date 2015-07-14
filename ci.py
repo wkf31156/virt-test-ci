@@ -110,7 +110,8 @@ class LibvirtCI():
 
             _setup_repos(repo_dict)
 
-        _update_pkgs()
+        if self.args.update_all_pkgs:
+            _update_pkgs()
 
         if self.args.install_pkgs:
             pkgs = ['p7zip', 'fakeroot']
