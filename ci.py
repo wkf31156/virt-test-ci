@@ -19,7 +19,6 @@ from autotest.client.shared import error
 from autotest.client import utils
 
 from report import Report
-from state import States
 
 
 class LibvirtCI():
@@ -830,6 +829,7 @@ allow tgtd_t var_lib_t:file { read write getattr open };
         if self.args.subtest != 'v2v':
             self.prepare_vm()
 
+        from state import States
         self.states = States()
         self.states.backup()
 
