@@ -13,8 +13,6 @@ from virttest.utils_misc import mount, umount
 class States():
 
     def __init__(self):
-        from virttest import virsh
-        self.virsh = virsh
         self.states = []
         for name, obj in globals().items():
             if name != "State" and name.endswith("State"):
@@ -38,6 +36,10 @@ class States():
 class State():
     permit_keys = []
     permit_re = []
+
+    def __init__(self):
+        from virttest import virsh
+        self.virsh = virsh
 
     def get_names(self):
         raise NotImplementedError('Function get_names not implemented for %s.'
