@@ -5,16 +5,16 @@ import difflib
 import tempfile
 import traceback
 import shutil
-from virttest import virsh
 from virttest import data_dir
 from virttest import utils_selinux
-from virttest import utils_libvirtd
 from virttest.utils_misc import mount, umount
 
 
 class States():
 
     def __init__(self):
+        from virttest import virsh
+        self.virsh = virsh
         self.states = []
         for name, obj in globals().items():
             if name != "State" and name.endswith("State"):
@@ -182,12 +182,12 @@ class DomainState(State):
     def remove(self, name):
         dom = name
         if dom['state'] != 'shut off':
-            res = virsh.destroy(dom['name'])
+            res = self.virsh.destroy(dom['name'])
             if res.exit_status:
                 raise Exception(str(res))
         if dom['persistent'] == 'yes':
             # Make sure the domain is remove anyway
-            res = virsh.undefine(
+            res = self.virsh.undefine(
                 dom['name'], options='--snapshots-metadata --managed-save')
             if res.exit_status:
                 raise Exception(str(res))
@@ -206,36 +206,36 @@ class DomainState(State):
 
         try:
             if dom['persistent'] == 'yes':
-                res = virsh.define(fname)
+                res = self.virsh.define(fname)
                 if res.exit_status:
                     raise Exception(str(res))
                 if dom['state'] != 'shut off':
-                    res = virsh.start(name)
+                    res = self.virsh.start(name)
                     if res.exit_status:
                         raise Exception(str(res))
             else:
-                res = virsh.create(fname)
+                res = self.virsh.create(fname)
                 if res.exit_status:
                     raise Exception(str(res))
         finally:
             os.remove(fname)
 
         if dom['autostart'] == 'enable':
-            res = virsh.autostart(name, '')
+            res = self.virsh.autostart(name, '')
             if res.exit_status:
                 raise Exception(str(res))
 
     def get_info(self, name):
         infos = {}
-        for line in virsh.dominfo(name).stdout.strip().splitlines():
+        for line in self.virsh.dominfo(name).stdout.strip().splitlines():
             key, value = line.split(':', 1)
             infos[key.lower()] = value.strip()
-        infos['inactive xml'] = virsh.dumpxml(
+        infos['inactive xml'] = self.virsh.dumpxml(
             name, extra='--inactive').stdout.splitlines()
         return infos
 
     def get_names(self):
-        return virsh.dom_list(options='--all --name').stdout.splitlines()
+        return self.virsh.dom_list(options='--all --name').stdout.splitlines()
 
 
 class NetworkState(State):
@@ -249,11 +249,11 @@ class NetworkState(State):
         """
         net = name
         if net['active'] == 'yes':
-            res = virsh.net_destroy(net['name'])
+            res = self.virsh.net_destroy(net['name'])
             if res.exit_status:
                 raise Exception(str(res))
         if net['persistent'] == 'yes':
-            res = virsh.net_undefine(net['name'])
+            res = self.virsh.net_undefine(net['name'])
             if res.exit_status:
                 raise Exception(str(res))
 
@@ -277,40 +277,40 @@ class NetworkState(State):
 
         try:
             if net['persistent'] == 'yes':
-                res = virsh.net_define(fname)
+                res = self.virsh.net_define(fname)
                 if res.exit_status:
                     raise Exception(str(res))
                 if net['active'] == 'yes':
-                    res = virsh.net_start(name)
+                    res = self.virsh.net_start(name)
                     if res.exit_status:
-                        res = virsh.net_start(name)
+                        res = self.virsh.net_start(name)
                         if res.exit_status:
                             raise Exception(str(res))
             else:
-                res = virsh.net_create(fname)
+                res = self.virsh.net_create(fname)
                 if res.exit_status:
                     raise Exception(str(res))
         finally:
             os.remove(fname)
 
         if net['autostart'] == 'yes':
-            res = virsh.net_autostart(name)
+            res = self.virsh.net_autostart(name)
             if res.exit_status:
                 raise Exception(str(res))
 
     def get_info(self, name):
         infos = {}
-        for line in virsh.net_info(name).stdout.strip().splitlines():
+        for line in self.virsh.net_info(name).stdout.strip().splitlines():
             key, value = line.split()
             if key.endswith(':'):
                 key = key[:-1]
             infos[key.lower()] = value.strip()
-        infos['inactive xml'] = virsh.net_dumpxml(
+        infos['inactive xml'] = self.virsh.net_dumpxml(
             name, '--inactive').stdout.splitlines()
         return infos
 
     def get_names(self):
-        lines = virsh.net_list('--all').stdout.strip().splitlines()[2:]
+        lines = self.virsh.net_list('--all').stdout.strip().splitlines()[2:]
         return [line.split()[0] for line in lines]
 
 
@@ -327,11 +327,11 @@ class PoolState(State):
         """
         pool = name
         if pool['state'] == 'running':
-            res = virsh.pool_destroy(pool['name'])
+            res = self.virsh.pool_destroy(pool['name'])
             if not res:
                 raise Exception(str(res))
         if pool['persistent'] == 'yes':
-            res = virsh.pool_undefine(pool['name'])
+            res = self.virsh.pool_undefine(pool['name'])
             if res.exit_status:
                 raise Exception(str(res))
 
@@ -349,15 +349,15 @@ class PoolState(State):
 
         try:
             if pool['persistent'] == 'yes':
-                res = virsh.pool_define(fname)
+                res = self.virsh.pool_define(fname)
                 if res.exit_status:
                     raise Exception(str(res))
                 if pool['state'] == 'running':
-                    res = virsh.pool_start(name)
+                    res = self.virsh.pool_start(name)
                     if res.exit_status:
                         raise Exception(str(res))
             else:
-                res = virsh.pool_create(fname)
+                res = self.virsh.pool_create(fname)
                 if res.exit_status:
                     raise Exception(str(res))
         except Exception, e:
@@ -366,22 +366,22 @@ class PoolState(State):
             os.remove(fname)
 
         if pool['autostart'] == 'yes':
-            res = virsh.pool_autostart(name)
+            res = self.virsh.pool_autostart(name)
             if res.exit_status:
                 raise Exception(str(res))
 
     def get_info(self, name):
         infos = {}
-        for line in virsh.pool_info(name).stdout.strip().splitlines():
+        for line in self.virsh.pool_info(name).stdout.strip().splitlines():
             key, value = line.split(':', 1)
             infos[key.lower()] = value.strip()
-        infos['inactive xml'] = virsh.pool_dumpxml(
+        infos['inactive xml'] = self.virsh.pool_dumpxml(
             name, '--inactive').splitlines()
-        infos['volumes'] = virsh.vol_list(name).stdout.strip().splitlines()[2:]
+        infos['volumes'] = self.virsh.vol_list(name).stdout.strip().splitlines()[2:]
         return infos
 
     def get_names(self):
-        lines = virsh.pool_list('--all').stdout.strip().splitlines()[2:]
+        lines = self.virsh.pool_list('--all').stdout.strip().splitlines()[2:]
         return [line.split()[0] for line in lines]
 
 
@@ -392,7 +392,7 @@ class SecretState(State):
 
     def remove(self, name):
         secret = name
-        res = virsh.secret_undefine(secret['uuid'])
+        res = self.virsh.secret_undefine(secret['uuid'])
         if res.exit_status:
             raise Exception(str(res))
 
@@ -410,7 +410,7 @@ class SecretState(State):
         secret_file.close()
 
         try:
-            res = virsh.secret_define(fname)
+            res = self.virsh.secret_define(fname)
             if res.exit_status:
                 raise Exception(str(res))
         except Exception, e:
@@ -421,11 +421,11 @@ class SecretState(State):
     def get_info(self, name):
         infos = {}
         infos['uuid'] = name
-        infos['xml'] = virsh.secret_dumpxml(name).stdout.splitlines()
+        infos['xml'] = self.virsh.secret_dumpxml(name).stdout.splitlines()
         return infos
 
     def get_names(self):
-        lines = virsh.secret_list().stdout.strip().splitlines()[2:]
+        lines = self.virsh.secret_list().stdout.strip().splitlines()[2:]
         return [line.split()[0] for line in lines]
 
 
@@ -473,6 +473,7 @@ class MountState(State):
 
 class ServiceState(State):
     name = 'service'
+    from virttest import utils_libvirtd
     libvirtd = utils_libvirtd.Libvirtd()
     permit_keys = []
     permit_re = []
