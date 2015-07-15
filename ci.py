@@ -13,9 +13,7 @@ import platform
 import ConfigParser
 
 from virttest import data_dir
-from virttest import virsh
 from virttest import defaults
-from virttest import utils_libvirtd
 from virttest.staging import service
 from autotest.client.shared import error
 from autotest.client import utils
@@ -585,6 +583,7 @@ class LibvirtCI():
                 return name
 
     def prepare_vm(self):
+        from virttest import virsh
         restore_image = True
         if self.args.img_url:
             logging.info('Downloading image from %s.', self.args.img_url)
@@ -797,6 +796,7 @@ allow tgtd_t var_lib_t:file { read write getattr open };
         self.prepare_pkgs()
         self.prepare_selinux()
 
+
         self.prepare_replaces()
 
         if self.args.pre_cmd:
@@ -814,6 +814,7 @@ allow tgtd_t var_lib_t:file { read write getattr open };
             logging.warning("No test to run!")
             exit(0)
 
+        from virttest import utils_libvirtd
         utils_libvirtd.Libvirtd().restart()
         service.Factory.create_service("nfs").restart()
 
