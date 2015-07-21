@@ -837,7 +837,7 @@ allow tgtd_t var_lib_t:file { read write getattr open };
         """
         Action to perform before a test
         """
-        import virsh
+        from virttest import virsh
         res = virsh.dumpxml('virt-tests-vm1',
                             ignore_status=True,
                             uri=self.args.connect_uri)
