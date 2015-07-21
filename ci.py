@@ -603,7 +603,7 @@ class LibvirtCI():
                           ignore_status=True,
                           uri=self.args.connect_uri)
             virsh.undefine('virt-tests-vm1',
-                           '--snapshots-metadata --managed-save',
+                           '--snapshots-metadata --managed-save --nvram',
                            ignore_status=True,
                            uri=self.args.connect_uri)
         else:
@@ -833,6 +833,41 @@ allow tgtd_t var_lib_t:file { read write getattr open };
         self.states = States()
         self.states.backup()
 
+    def prepare_test(self, test):
+        """
+        Action to perform before a test
+        """
+        import virsh
+        res = virsh.dumpxml('virt-tests-vm1',
+                            ignore_status=True,
+                            uri=self.args.connect_uri)
+        if not res.exit_status:
+            domxml = res.stdout
+            fname = '/var/lib/libvirt/qemu/nvram/virt-tests-vm1_VARS.fd'
+            if not os.path.exists(fname) and fname in domxml:
+                domxml = re.sub('^.*<nvram>.*</nvram>.*$', '', domxml)
+                virsh.destroy('virt-tests-vm1',
+                              ignore_status=True,
+                              uri=self.args.connect_uri)
+                virsh.undefine('virt-tests-vm1',
+                               '--snapshots-metadata --managed-save --nvram',
+                               ignore_status=True,
+                               uri=self.args.connect_uri)
+
+                xml_path = '/tmp/virt-test-ci.xml'
+                with open(xml_path, 'w') as fp:
+                    fp.write(domxml)
+                res = virsh.define(xml_path)
+                if res.exit_status:
+                    logging.error('Define command result:\n%s', res)
+                    raise Exception('Failed to define domain for XML:\n%s' % domxml)
+                try:
+                    os.remove(xml_path)
+                except OSError:
+                    pass
+        else:
+            logging.warning('Failed to dumpxml from virt-tests-vm1\n%s', res)
+
     def run(self):
         """
         Run continuous integrate for virt-test test cases.
@@ -845,6 +880,8 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                 print '%s (%d/%d) %s ' % (time.strftime('%X'), idx + 1,
                                           len(self.tests), short_name),
                 sys.stdout.flush()
+
+                self.prepare_test(test)
 
                 status, res, err_msg, result_line = self.run_test(test)
 
@@ -867,6 +904,7 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                 self.report.update(test_name, class_name, status, reason,
                                    res.stderr, err_msg, res.duration)
                 self.report.save(self.args.report, self.args.text_report)
+
             if self.args.post_cmd:
                 logging.info('Running command line "%s" after test.',
                              self.args.post_cmd)
