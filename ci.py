@@ -603,7 +603,7 @@ class LibvirtCI():
                           ignore_status=True,
                           uri=self.args.connect_uri)
             virsh.undefine('virt-tests-vm1',
-                           '--snapshots-metadata --managed-save --nvram',
+                           '--snapshots-metadata --managed-save',
                            ignore_status=True,
                            uri=self.args.connect_uri)
         else:
@@ -842,15 +842,16 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                             ignore_status=True,
                             uri=self.args.connect_uri)
         if not res.exit_status:
+            logging.warning('Removing nvram line...')
             domxml = res.stdout
             fname = '/var/lib/libvirt/qemu/nvram/virt-tests-vm1_VARS.fd'
             if not os.path.exists(fname) and fname in domxml:
-                domxml = re.sub('^.*<nvram>.*</nvram>.*$', '', domxml)
+                domxml = re.sub('<nvram>.*</nvram>', '', domxml)
                 virsh.destroy('virt-tests-vm1',
                               ignore_status=True,
                               uri=self.args.connect_uri)
                 virsh.undefine('virt-tests-vm1',
-                               '--snapshots-metadata --managed-save --nvram',
+                               '--snapshots-metadata --managed-save',
                                ignore_status=True,
                                uri=self.args.connect_uri)
 
@@ -876,12 +877,13 @@ allow tgtd_t var_lib_t:file { read write getattr open };
         self.prepare()
         try:
             for idx, test in enumerate(self.tests):
+                self.prepare_test(test)
+
                 short_name = test.split('.', 2)[2]
                 print '%s (%d/%d) %s ' % (time.strftime('%X'), idx + 1,
                                           len(self.tests), short_name),
                 sys.stdout.flush()
 
-                self.prepare_test(test)
 
                 status, res, err_msg, result_line = self.run_test(test)
 
