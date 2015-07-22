@@ -164,7 +164,14 @@ class Report():
                       if s in string.printable)
         tc.system_out = log
 
-        error_msg = [escape_str(l) for l in error_msg]
+        tmp_msg = []
+        for line in error_msg:
+            # Filter non-printable characters in error message
+            line = ''.join(s for s in unicode(line, errors='ignore')
+                           if s in string.printable)
+            tmp_msg.append(escape_str(line))
+        error_msg = tmp_msg
+
 
         if 'FAIL' in result:
             error_msg.insert(0, 'Test %s has failed' % testname)
