@@ -1072,7 +1072,7 @@ class LibvirtCI():
                           ignore_status=True,
                           uri=self.args.connect_uri)
             virsh.undefine('virt-tests-vm1',
-                           '--snapshots-metadata --managed-save --nvram',
+                           '--snapshots-metadata --managed-save',
                            ignore_status=True,
                            uri=self.args.connect_uri)
         else:
@@ -1320,12 +1320,15 @@ class LibvirtCI():
             domxml = res.stdout
             fname = '/var/lib/libvirt/qemu/nvram/virt-tests-vm1_VARS.fd'
             if not os.path.exists(fname) and fname in domxml:
-                domxml = re.sub('^.*<nvram>.*</nvram>.*$', '', domxml)
+                logging.warning(
+                    'nvram in XML, but file %s do not exists. '
+                    'Removing nvram line. XML:\n%s' % (fname, domxml))
+                domxml = re.sub('<nvram>.*</nvram>', '', domxml)
                 virsh.destroy('virt-tests-vm1',
                               ignore_status=True,
                               uri=self.args.connect_uri)
                 virsh.undefine('virt-tests-vm1',
-                               '--snapshots-metadata --managed-save --nvram',
+                               '--snapshots-metadata --managed-save',
                                ignore_status=True,
                                uri=self.args.connect_uri)
 
