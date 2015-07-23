@@ -842,10 +842,10 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                             ignore_status=True,
                             uri=self.args.connect_uri)
         if not res.exit_status:
-            logging.warning('Removing nvram line...')
             domxml = res.stdout
             fname = '/var/lib/libvirt/qemu/nvram/virt-tests-vm1_VARS.fd'
             if not os.path.exists(fname) and fname in domxml:
+                logging.warning('Removing nvram line...')
                 domxml = re.sub('<nvram>.*</nvram>', '', domxml)
                 virsh.destroy('virt-tests-vm1',
                               ignore_status=True,
