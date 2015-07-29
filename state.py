@@ -143,16 +143,24 @@ class State():
                             item_changed = True
                             diff_msg.append('Deleted key(s) in %s %s:' %
                                             (self.name, item))
+                        else:
+                            logging.warning("Deleted key '%s' is permeable, "
+                                            "Won't restore", key)
                     else:
                         item_changed = True
                         diff_msg.append('Deleted key(s) in %s %s:' %
                                         (self.name, item))
             for key in unchanged_keys:
                 if type(cur[key]) is str:
-                    if key not in self.permit_keys and cur[key] != bak[key]:
-                        item_changed = True
-                        diff_msg.append('%s %s: %s changed: %s -> %s' % (
-                            self.name, item, key, bak[key], cur[key]))
+                    if cur[key] != bak[key]:
+                        if key not in self.permit_keys:
+                            item_changed = True
+                            diff_msg.append('%s %s: %s changed: %s -> %s' % (
+                                self.name, item, key, bak[key], cur[key]))
+                        else:
+                            logging.warning(
+                                "Changed key '%s'(%s -> %s) is permeable, "
+                                "Won't restore", (key, bak[key], cur[key]))
                 elif type(cur[key]) is list:
                     diff = difflib.unified_diff(
                         bak[key], cur[key], lineterm="")
@@ -540,6 +548,7 @@ class DirState(State):
         if deleted_files:
             for fname in deleted_files:
                 fpath = os.path.join(name['dir-name'], fname)
+                logging.warning('Restoring empty file %s', fpath)
                 open(fpath, 'a').close()
         # TODO: record file/dir info and recover them separately
 
