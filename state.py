@@ -536,20 +536,22 @@ class DirState(State):
         created_files = set(cur) - set(bak)
         if created_files:
             for fname in created_files:
-                fpath = os.path.join(name['dir-name'], fname)
-                if os.path.isfile(fpath):
-                    os.remove(fpath)
-                elif os.path.isdir(fpath):
-                    if os.path.ismount(fpath):
-                        os.system('umount -l %s' % fpath)
-                    else:
-                        shutil.rmtree(fpath)
+                if fname not in self.permit_keys:
+                    fpath = os.path.join(name['dir-name'], fname)
+                    if os.path.isfile(fpath):
+                        os.remove(fpath)
+                    elif os.path.isdir(fpath):
+                        if os.path.ismount(fpath):
+                            os.system('umount -l %s' % fpath)
+                        else:
+                            shutil.rmtree(fpath)
         deleted_files = set(bak) - set(cur)
         if deleted_files:
             for fname in deleted_files:
-                fpath = os.path.join(name['dir-name'], fname)
-                logging.warning('Restoring empty file %s', fpath)
-                open(fpath, 'a').close()
+                if fname not in self.permit_keys:
+                    fpath = os.path.join(name['dir-name'], fname)
+                    logging.warning('Restoring empty file %s', fpath)
+                    open(fpath, 'a').close()
         # TODO: record file/dir info and recover them separately
 
     def get_info(self, name):
