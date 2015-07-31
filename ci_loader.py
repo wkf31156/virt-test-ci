@@ -142,6 +142,10 @@ def _parse_args():
                       'instead.')
     parser.add_option('--domxml', dest='domxml', action='store',
                       help='Customized domain XML')
+    parser.add_option('--qemu-pkg', dest='qemu_pkg', action='store',
+                      default='qemu-rhev',
+                      help="Specify with qemu package to be installed. Could "
+                      "be one of 'qemu' or 'qemu-rhev'. Default to 'qemu-rhev'")
     args, real_args = parser.parse_args()
     if args.no_restore_pull:
         logging.warning(

@@ -92,6 +92,39 @@ class LibvirtCI():
                 cmd = 'yum -y update ' + pkgs
                 utils.run(cmd)
 
+        def _replace_qemu_rhev(qemu_pkg):
+            res = utils.run('rpm -q qemu-kvm', ignore_status=True)
+            non_rhev_installed = not res.exit_status
+
+            res = utils.run('rpm -q qemu-kvm-rhev', ignore_status=True)
+            rhev_installed = not res.exit_status
+
+            if not non_rhev_installed and qemu_pkg == 'qemu':
+                if rhev_installed:
+                    logging.info('Removing qemu-rhev packages')
+                    cmd = 'yum -y remove \*-rhev'
+                    try:
+                        utils.run(cmd)
+                    except error.CmdError, e:
+                        logging.warning(
+                            'Failed removing qemu-rhev packages:\n%s', e)
+
+                logging.info('Installing qemu packages')
+                cmd = 'yum -y install qemu-kvm qemu-img libvirt virt-install'
+                try:
+                    utils.run(cmd)
+                except error.CmdError, e:
+                    logging.warning(
+                        'Failed installing qemu packages:\n%s', e)
+            if not rhev_installed and qemu_pkg == 'qemu-rhev':
+                logging.info('Installing qemu-rhev packages')
+                cmd = 'yum -y install qemu-kvm-rhev qemu-img-rhev libvirt virt-install'
+                try:
+                    utils.run(cmd)
+                except error.CmdError, e:
+                    logging.warning(
+                        'Failed installing qemu-rhev packages:\n%s', e)
+
         if self.args.yum_repos:
             repos = ['epel']
             repos += self.split_string(self.args.yum_repos)
@@ -109,6 +142,8 @@ class LibvirtCI():
 
         if self.args.update_all_pkgs:
             _update_pkgs()
+
+        _replace_qemu_rhev(self.args.qemu_pkg)
 
         if self.args.install_pkgs:
             pkgs = ['p7zip', 'fakeroot']
