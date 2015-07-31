@@ -160,7 +160,7 @@ class State():
                         else:
                             logging.warning(
                                 "Changed key '%s'(%s -> %s) is permeable, "
-                                "Won't restore", (key, bak[key], cur[key]))
+                                "Won't restore" % (key, bak[key], cur[key]))
                 elif type(cur[key]) is list:
                     diff = difflib.unified_diff(
                         bak[key], cur[key], lineterm="")
