@@ -140,6 +140,9 @@ def _parse_args():
                       help='Replace patterns in specified files. This option '
                       'is only a placeholder, you should set CI_REPLACES env '
                       'instead.')
+    parser.add_option('--main-vm', dest='main_vm', action='store',
+                      default='virt-tests-vm1',
+                      help="Customized main domain name. Default to 'virt-tests-vm1'")
     parser.add_option('--domxml', dest='domxml', action='store',
                       help='Customized domain XML')
     parser.add_option('--qemu-pkg', dest='qemu_pkg', action='store',

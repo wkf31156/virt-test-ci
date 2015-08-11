@@ -634,16 +634,16 @@ class LibvirtCI():
         logging.info('Removing VM\n')
         sys.stdout.flush()
         if self.args.connect_uri:
-            virsh.destroy('virt-tests-vm1',
+            virsh.destroy(self.args.main_vm,
                           ignore_status=True,
                           uri=self.args.connect_uri)
-            virsh.undefine('virt-tests-vm1',
+            virsh.undefine(self.args.main_vm,
                            '--snapshots-metadata --managed-save',
                            ignore_status=True,
                            uri=self.args.connect_uri)
         else:
-            virsh.destroy('virt-tests-vm1', ignore_status=True)
-            virsh.undefine('virt-tests-vm1', '--snapshots-metadata',
+            virsh.destroy(self.args.main_vm, ignore_status=True)
+            virsh.undefine(self.args.main_vm, '--snapshots-metadata',
                            ignore_status=True)
         if self.args.additional_vms:
             for vm in self.split_string(self.args.additional_vms):
@@ -654,7 +654,7 @@ class LibvirtCI():
         sys.stdout.flush()
         if self.args.domxml:
             domxml = re.sub('(?<=<name>).*(?=</name>)',
-                            'virt-tests-vm1',
+                            self.args.main_vm,
                             self.args.domxml)
             xml_path = '/tmp/virt-test-ci.xml'
             with open(xml_path, 'w') as fp:
@@ -669,8 +669,8 @@ class LibvirtCI():
                 pass
         else:
             if 'lxc' in self.args.connect_uri:
-                cmd = ('virt-install --connect=lxc:/// --name virt-tests-vm1 '
-                       '--ram 500 --noautoconsole')
+                cmd = ('virt-install --connect=lxc:/// --name %s '
+                       '--ram 500 --noautoconsole' % self.args.main_vm)
                 try:
                     utils.run(cmd)
                 except error.CmdError, e:
@@ -682,18 +682,24 @@ class LibvirtCI():
                 if 'PASS' not in status:
                     raise Exception('   ERROR: Failed to install guest \n %s' %
                                     res.stderr)
-                virsh.destroy('virt-tests-vm1')
+                virsh.destroy(self.args.main_vm)
         if self.args.additional_vms:
             for vm in self.split_string(self.args.additional_vms):
                 cmd = 'virt-clone '
                 if self.args.connect_uri:
                     cmd += '--connect=%s ' % self.args.connect_uri
-                cmd += '--original=virt-tests-vm1 '
+                cmd += '--original=%s ' % self.args.main_vm
                 cmd += '--name=%s ' % vm
                 cmd += '--auto-clone'
                 utils.run(cmd)
 
     def prepare_cfg(self):
+        if self.args.main_vm:
+            self.replace_pattern_in_file(
+                "shared/cfg/base.cfg",
+                r'virt-tests-vm1',
+                self.args.main_vm)
+
         if self.args.password:
             self.replace_pattern_in_file(
                 "shared/cfg/guest-os/Linux.cfg",
@@ -708,7 +714,7 @@ class LibvirtCI():
                 r'os_variant = %s' % self.args.os_variant)
 
         if self.args.additional_vms and self.args.subtest != 'v2v':
-            vms_string = "virt-tests-vm1 " + " ".join(
+            vms_string = "%s " % self.args.main_vm + " ".join(
                 self.split_string(self.args.additional_vms))
             self.replace_pattern_in_file(
                 "shared/cfg/base.cfg",
@@ -875,19 +881,19 @@ allow tgtd_t var_lib_t:file { read write getattr open };
         Action to perform before a test
         """
         from virttest import virsh
-        res = virsh.dumpxml('virt-tests-vm1',
+        res = virsh.dumpxml(self.args.main_vm,
                             ignore_status=True,
                             uri=self.args.connect_uri)
         if not res.exit_status:
             domxml = res.stdout
-            fname = '/var/lib/libvirt/qemu/nvram/virt-tests-vm1_VARS.fd'
+            fname = '/var/lib/libvirt/qemu/nvram/%s_VARS.fd' % self.args.main_vm
             if not os.path.exists(fname) and fname in domxml:
                 logging.warning('Removing nvram line...')
                 domxml = re.sub('<nvram>.*</nvram>', '', domxml)
-                virsh.destroy('virt-tests-vm1',
+                virsh.destroy(self.args.main_vm,
                               ignore_status=True,
                               uri=self.args.connect_uri)
-                virsh.undefine('virt-tests-vm1',
+                virsh.undefine(self.args.main_vm,
                                '--snapshots-metadata --managed-save',
                                ignore_status=True,
                                uri=self.args.connect_uri)
@@ -904,7 +910,7 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                 except OSError:
                     pass
         else:
-            logging.warning('Failed to dumpxml from virt-tests-vm1\n%s', res)
+            logging.warning('Failed to dumpxml from %s\n%s', self.args.main_vm, res)
 
     def run(self):
         """
