@@ -813,7 +813,9 @@ allow tgtd_t var_lib_t:file { read write getattr open };
                     if os.path.isfile(f):
                         self.replace_pattern_in_file(f, s_from, s_to)
             elif line.strip().endswith(':'):
-                cur_files = glob.glob(line.strip()[:-1])
+                paths = self.split_string(line.strip()[:-1])
+                # Flatten all paths to a list
+                cur_files = sum([glob.glob(path) for path in paths], [])
                 if not cur_files:
                     raise ValueError(
                         "Expect a existing file name, "
