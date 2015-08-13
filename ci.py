@@ -351,7 +351,7 @@ class LibvirtCI():
             sys.stdout.write(line)
         for idx, line in replacements:
             logging.info("%s:%d Replacing '%s' with '%s' in line:\n%s",
-                         file, idx, search_exp, replace_exp, line)
+                         file, idx, search_exp, replace_exp, line.strip())
 
     def prepare_env(self):
         """
