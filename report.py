@@ -1,3 +1,4 @@
+import re
 import string
 from autotest.client.tools import JUnit_api as api
 from datetime import date
@@ -212,6 +213,7 @@ class Report():
         tc.system_out = log
 
         tmp_msg = []
+
         for line in error_msg:
             # Filter non-printable characters in error message
             line = ''.join(s for s in unicode(line, errors='ignore')
@@ -219,35 +221,39 @@ class Report():
             tmp_msg.append(escape_str(line))
         error_msg = tmp_msg
 
+        result_msg = ''
+        for line in log:
+            res = re.findall(
+                r'^[:0-9]+ (ERROR|INFO )\| (FAIL|ERROR|PASS|SKIP|WARN)'
+                ' \S+\s+(.*)$',
+                line)
+            if res:
+                result_msg = res[2]
+                result_msg = ''.join(
+                    s for s in unicode(result_msg, errors='ignore')
+                    if s in string.printable)
+                if result_msg.startswith('-> '):
+                    result_msg = result_msg[3]
+
         if 'FAIL' in result:
             error_msg.insert(0, 'Test %s has failed' % testname)
-            tc.failure = self.failureType(
-                message='&#10;'.join(error_msg),
-                type_='Failure')
+            tc.failure = result_msg
             ts.failures += 1
         elif 'TIMEOUT' in result:
             error_msg.insert(0, 'Test %s has timed out' % testname)
-            tc.failure = self.failureType(
-                message='&#10;'.join(error_msg),
-                type_='Timeout')
+            tc.failure = result_msg
             ts.failures += 1
         elif 'ERROR' in result or 'INVALID' in result:
             error_msg.insert(0, 'Test %s has encountered error' % testname)
-            tc.error = self.errorType(
-                message='&#10;'.join(error_msg),
-                type_='Error')
+            tc.failure = result_msg
             ts.errors += 1
         elif 'SKIP' in result:
             error_msg.insert(0, 'Test %s is skipped' % testname)
-            tc.skip = self.skipType(
-                message='&#10;'.join(error_msg),
-                type_='Skip')
+            tc.skip = result_msg
             ts.skips += 1
         elif 'DIFF' in result and self.fail_diff:
             error_msg.insert(0, 'Test %s results dirty environment' % testname)
-            tc.failure = self.failureType(
-                message='&#10;'.join(error_msg),
-                type_='DIFF')
+            tc.failure = result_msg
             ts.failures += 1
         ts.add_testcase(tc)
         ts.tests += 1
