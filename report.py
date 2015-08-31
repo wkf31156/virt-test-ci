@@ -233,7 +233,7 @@ class Report():
                     s for s in unicode(result_msg, errors='ignore')
                     if s in string.printable)
                 if result_msg.startswith('-> '):
-                    result_msg = result_msg[3]
+                    result_msg = result_msg[3:]
 
         if 'FAIL' in result:
             error_msg.insert(0, 'Test %s has failed' % testname)
