@@ -237,23 +237,33 @@ class Report():
 
         if 'FAIL' in result:
             error_msg.insert(0, 'Test %s has failed' % testname)
-            tc.failure = result_msg
+            tc.failure = self.failureType(
+                message=result_msg,
+                type_='Failure')
             ts.failures += 1
         elif 'TIMEOUT' in result:
             error_msg.insert(0, 'Test %s has timed out' % testname)
-            tc.failure = result_msg
+            tc.failure = self.failureType(
+                message=result_msg,
+                type_='Timeout')
             ts.failures += 1
         elif 'ERROR' in result or 'INVALID' in result:
             error_msg.insert(0, 'Test %s has encountered error' % testname)
-            tc.failure = result_msg
+            tc.failure = self.failureType(
+                message=result_msg,
+                type_='Error')
             ts.errors += 1
         elif 'SKIP' in result:
             error_msg.insert(0, 'Test %s is skipped' % testname)
-            tc.skip = result_msg
+            tc.skip = self.failureType(
+                message=result_msg,
+                type_='Skip')
             ts.skips += 1
         elif 'DIFF' in result and self.fail_diff:
             error_msg.insert(0, 'Test %s results dirty environment' % testname)
-            tc.failure = result_msg
+            tc.failure = self.failureType(
+                message=result_msg,
+                type_='DIFF')
             ts.failures += 1
         ts.add_testcase(tc)
         ts.tests += 1
