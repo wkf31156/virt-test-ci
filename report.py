@@ -231,6 +231,7 @@ class Report():
                 result_msg = res[0][2]
                 if result_msg.startswith('-> '):
                     result_msg = result_msg[3:]
+                result_msg = escape_str(result_msg)
 
         if 'FAIL' in result:
             error_msg.insert(0, 'Test %s has failed' % testname)
