@@ -222,7 +222,7 @@ class Report():
         error_msg = tmp_msg
 
         result_msg = ''
-        for line in log:
+        for line in log.splitlines():
             res = re.findall(
                 r'^[:0-9]+ (ERROR|INFO )\| (FAIL|ERROR|PASS|SKIP|WARN)'
                 ' \S+\s+(.*)$',
@@ -255,7 +255,7 @@ class Report():
             ts.errors += 1
         elif 'SKIP' in result:
             error_msg.insert(0, 'Test %s is skipped' % testname)
-            tc.skip = self.failureType(
+            tc.skip = self.skipType(
                 message=result_msg,
                 type_='Skip')
             ts.skips += 1
