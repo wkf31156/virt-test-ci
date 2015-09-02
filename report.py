@@ -229,9 +229,6 @@ class Report():
                 line)
             if res:
                 result_msg = res[0][2]
-                result_msg = ''.join(
-                    s for s in unicode(result_msg, errors='ignore')
-                    if s in string.printable)
                 if result_msg.startswith('-> '):
                     result_msg = result_msg[3:]
 
