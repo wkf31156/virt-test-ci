@@ -418,7 +418,7 @@ class LibvirtCI():
                 raise Exception('Failed to create branch %s' % branch_name)
 
             for pull_no in pull_nos:
-                if pr_open(repo_name, pull_no):
+                if not pr_merged(repo_name, pull_no):
                     patch_url = ('https://github.com/autotest'
                                  '/%s/pull/%s.patch' % (repo_name, pull_no))
                     patch_file = "/tmp/%s.patch" % pull_no
@@ -493,15 +493,17 @@ class LibvirtCI():
             res |= set(match)
             return res
 
-        def pr_open(repo_name, pr_number):
+        def pr_merged(repo_name, pr_number):
             oauth = ('?client_id=b6578298435c3eaa1e3d&client_secret'
                      '=59a1c828c6002ed4e8a9205486cf3fa86467a609')
-            issues_url = ('https://api.github.com/repos/autotest/%s/issues/' %
+            pulls_url = ('https://api.github.com/repos/autotest/%s/pulls/' %
                           repo_name)
-            issue_url = issues_url + pr_number + oauth
-            issue_u = urllib2.urlopen(issue_url)
-            issue = json.load(issue_u)
-            return issue['state'] == 'open'
+            pull_url = pulls_url + pr_number + oauth
+            pull_u = urllib2.urlopen(pull_url)
+            pull = json.load(pull_u)
+            if not pull['mergeable']:
+                logging.error('Pull request %s is not mergeable' % pr_number)
+            return pull['merged']
 
         def libvirt_pr_dep(pr_numbers):
             oauth = ('?client_id=b6578298435c3eaa1e3d&client_secret'
@@ -528,7 +530,7 @@ class LibvirtCI():
             # Remove closed dependences:
             pruned_dep = set()
             for pr_number in dep:
-                if pr_open('virt-test', pr_number):
+                if not pr_merged('virt-test', pr_number):
                     pruned_dep.add(pr_number)
 
             return pruned_dep
