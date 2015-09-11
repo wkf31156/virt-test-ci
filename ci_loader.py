@@ -110,7 +110,7 @@ def _parse_args():
     parser.add_option('--test-path', dest='test_path', action='store',
                       default='', help='Path for the test directory')
     parser.add_option('--autotest-repo', dest='autotest_repo', action='store',
-                      default='https://github.com/autotest/autotest.git '
+                      default='https://github.com/libvirt-CI/autotest.git '
                       'master', help='URL and branch for autotest repo')
     parser.add_option('--virt-test-repo', dest='virt_test_repo',
                       action='store',
