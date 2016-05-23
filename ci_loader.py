@@ -114,14 +114,14 @@ def _parse_args():
                       'master', help='URL and branch for autotest repo')
     parser.add_option('--virt-test-repo', dest='virt_test_repo',
                       action='store',
-                      default='https://github.com/autotest/virt-test.git '
+                      default='https://github.com/wkf31156/virt-test.git '
                       'master', help='URL and branch for virt-test repo')
     parser.add_option('--tp-libvirt-repo', dest='tp_libvirt_repo',
                       action='store',
-                      default='https://github.com/autotest/tp-libvirt.git '
+                      default='https://github.com/wkf31156/tp-libvirt.git '
                       'master', help='URL and branch for tp-libvirt repo')
     parser.add_option('--tp-qemu-repo', dest='tp_qemu_repo', action='store',
-                      default='https://github.com/autotest/tp-qemu.git master',
+                      default='https://github.com/wkf31156/tp-qemu.git master',
                       help='URL and branch for tp-qemu repo')
     parser.add_option('--tp-libvirt-subtest', dest='subtest', action='store',
                       default='libvirt',
